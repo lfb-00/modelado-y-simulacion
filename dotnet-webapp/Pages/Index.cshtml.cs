@@ -6,6 +6,7 @@ namespace dotnet_webapp.Pages;
 
 public class IndexModel : PageModel
 {
+    private readonly ILogger<IndexModel> _logger;
     [BindProperty]
     public string SelectedAlgorithm { get; set; } = "bisection";
 
@@ -26,6 +27,11 @@ public class IndexModel : PageModel
 
     [BindProperty]
     public int MaxIterations { get; set; } = 50;
+
+    public IndexModel(ILogger<IndexModel> logger)
+    {
+        _logger = logger;
+    }
 
     public string ResultMessage { get; set; } = string.Empty;
     public string SummaryMessage { get; set; } = string.Empty;
@@ -52,15 +58,19 @@ public class IndexModel : PageModel
         SummaryMessage = string.Empty;
         Steps = new List<StepEntry>();
 
+        _logger.LogInformation("Inicio de cálculo - Algoritmo: {Algorithm}, Tolerancia: {Tolerance}, MaxIteraciones: {MaxIterations}", SelectedAlgorithm, Tolerance, MaxIterations);
+
         if (Tolerance <= 0)
         {
             ResultMessage = "La tolerancia debe ser mayor que 0.";
+            _logger.LogWarning("Tolerancia inválida: {Tolerance}", Tolerance);
             return;
         }
 
         if (MaxIterations <= 0)
         {
             ResultMessage = "El número máximo de iteraciones debe ser mayor que 0.";
+            _logger.LogWarning("MaxIteraciones inválido: {MaxIterations}", MaxIterations);
             return;
         }
 
@@ -69,27 +79,35 @@ public class IndexModel : PageModel
             switch (SelectedAlgorithm)
             {
                 case "bisection":
+                    _logger.LogInformation("Ejecutando Bisección con intervalo [{A}, {B}]", A, B);
                     ComputeBisection();
                     break;
                 case "newton":
+                    _logger.LogInformation("Ejecutando Newton-Raphson con x0={X0}", X0);
                     ComputeNewton();
                     break;
                 case "fixed-point":
+                    _logger.LogInformation("Ejecutando Punto Fijo con x0={X0}", X0);
                     ComputeFixedPoint();
                     break;
                 default:
                     ResultMessage = "Seleccione un método válido.";
+                    _logger.LogError("Algoritmo inválido: {Algorithm}", SelectedAlgorithm);
                     break;
             }
         }
         catch (ArgumentException ex)
         {
             ResultMessage = "Error en la función: " + ex.Message;
+            _logger.LogError(ex, "Error en la evaluación de la función");
         }
         catch (Exception ex)
         {
             ResultMessage = "Error al evaluar la función: " + ex.Message;
+            _logger.LogError(ex, "Error al evaluar la función");
         }
+
+        _logger.LogInformation("Cálculo completado - Resultado: {Result}", ResultMessage);
     }
 
     private double F(double x)
@@ -130,8 +148,11 @@ public class IndexModel : PageModel
         if (fa * fb > 0)
         {
             ResultMessage = "El intervalo [a, b] debe contener un cambio de signo.";
+            _logger.LogError("Bisección fallida: f({A})={FA} y f({B})={FB} tienen el mismo signo", a, fa, b, fb);
             return;
         }
+
+        _logger.LogInformation("Iniciando Bisección: f({A})={FA}, f({B})={FB}", a, fa, b, fb);
 
         double previousC = double.NaN;
         for (int i = 1; i <= MaxIterations; i++)
@@ -152,10 +173,16 @@ public class IndexModel : PageModel
                 Error = error
             });
 
+            _logger.LogDebug("Iteración {Iteration}: c={C}, f(c)={FC}, error={Error}", i, c, fc, error);
+
             if (Math.Abs(fc) < Tolerance || (b - a) / 2 < Tolerance)
             {
                 ResultMessage = $"Raíz aproximada: {c:F10} (método bisección)";
                 SummaryMessage = $"Iteraciones: {i}, f(c) = {fc:E2}";
+                RootX = c;
+                RootY = fc;
+                _logger.LogInformation("Bisección convergió en {Iterations} iteraciones con raíz={Root}", i, c);
+                GenerateChart(-30 - 0.5, 30 + 0.5);
                 return;
             }
 
@@ -174,11 +201,15 @@ public class IndexModel : PageModel
         }
 
         ResultMessage = $"No se encontró convergencia después de {MaxIterations} iteraciones.";
+        _logger.LogWarning("Bisección no convergió después de {MaxIterations} iteraciones", MaxIterations);
+        GenerateChart(A, B);
     }
 
     private void ComputeNewton()
     {
         double x = X0;
+
+        _logger.LogInformation("Iniciando Newton-Raphson con x0={X0}, función={Function}", x, Function);
 
         for (int i = 1; i <= MaxIterations; i++)
         {
@@ -188,6 +219,7 @@ public class IndexModel : PageModel
             if (Math.Abs(dfx) < 1e-12)
             {
                 ResultMessage = "Derivada demasiado pequeña. Cambie la semilla inicial.";
+                _logger.LogError("Newton-Raphson fallido: derivada muy pequeña ({DFX}) en x={X}", dfx, x);
                 return;
             }
 
@@ -203,10 +235,16 @@ public class IndexModel : PageModel
                 Error = error
             });
 
+            _logger.LogDebug("Iteración {Iteration}: x={X}, f(x)={FX}, f'(x)={DFX}, error={Error}", i, x, fx, dfx, error);
+
             if (error < Tolerance)
             {
                 ResultMessage = $"Raíz aproximada: {next:F10} (método Newton-Raphson)";
                 SummaryMessage = $"Iteraciones: {i}, f(x) = {fx:E2}";
+                RootX = next;
+                RootY = F(next);
+                _logger.LogInformation("Newton-Raphson convergió en {Iterations} iteraciones con raíz={Root}", i, next);
+                GenerateChart(Math.Min(X0, next) - 1, Math.Max(X0, next) + 1);
                 return;
             }
 
@@ -214,11 +252,15 @@ public class IndexModel : PageModel
         }
 
         ResultMessage = $"No se encontró convergencia después de {MaxIterations} iteraciones.";
+        _logger.LogWarning("Newton-Raphson no convergió después de {MaxIterations} iteraciones", MaxIterations);
+        GenerateChart(X0 - 2, X0 + 2);
     }
 
     private void ComputeFixedPoint()
     {
         double x = X0;
+
+        _logger.LogInformation("Iniciando Punto Fijo con x0={X0}, g(x)={Function}", x, Function);
 
         for (int i = 1; i <= MaxIterations; i++)
         {
@@ -233,10 +275,16 @@ public class IndexModel : PageModel
                 Error = error
             });
 
+            _logger.LogDebug("Iteración {Iteration}: x={X}, g(x)={G}, error={Error}", i, x, next, error);
+
             if (error < Tolerance)
             {
                 ResultMessage = $"Raíz aproximada: {next:F10} (método de punto fijo)";
                 SummaryMessage = $"Iteraciones: {i}, error final = {error:E2}";
+                RootX = next;
+                RootY = next;
+                _logger.LogInformation("Punto Fijo convergió en {Iterations} iteraciones con raíz={Root}", i, next);
+                GenerateChart(X0 - 2, X0 + 2);
                 return;
             }
 
@@ -244,6 +292,33 @@ public class IndexModel : PageModel
         }
 
         ResultMessage = $"No se encontró convergencia después de {MaxIterations} iteraciones.";
+        _logger.LogWarning("Punto Fijo no convergió después de {MaxIterations} iteraciones", MaxIterations);
+        GenerateChart(X0 - 2, X0 + 2);
+    }
+
+    private void GenerateChart(double xMin, double xMax)
+    {
+        ChartXValues.Clear();
+        ChartYValues.Clear();
+
+        int points = 200;
+        for (int i = 0; i < points; i++)
+        {
+            double x = xMin + (xMax - xMin) * i / (points - 1);
+            try
+            {
+                double y = SelectedAlgorithm == "fixed-point" ? G(x) : F(x);
+                if (!double.IsNaN(y) && !double.IsInfinity(y))
+                {
+                    ChartXValues.Add(x);
+                    ChartYValues.Add(y);
+                }
+            }
+            catch
+            {
+                // Ignorar puntos que causan error
+            }
+        }
     }
 
     public class StepEntry

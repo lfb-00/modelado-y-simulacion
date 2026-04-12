@@ -4,6 +4,9 @@
     ViewData["Title"] = "Modelado y simulación";
 }
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.1.0/dist/chartjs-plugin-zoom.min.js"></script>
+
 <div class="container mt-4">
     <h1 class="mb-3">Simulación numérica en .NET</h1>
     <p>Calcula raíces usando una función ingresada por el usuario.</p>
@@ -68,6 +71,22 @@
                 }
             </div>
         </div>
+
+        @if (Model.ChartXValues?.Count > 0)
+        {
+            <div class="card mt-4">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 class="card-title" style="margin: 0;">Gráfico de la función</h5>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetZoomBtn">Resetear Zoom</button>
+                    </div>
+                    <small class="text-muted">Rueda del ratón: zoom | Ctrl + Click: desplazamiento</small>
+                    <div style="position: relative; width: 100%; height: 400px; margin-top: 10px;">
+                        <canvas id="functionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        }
     }
 
     @if (Model.Steps?.Count > 0)
@@ -173,6 +192,176 @@
             if (algorithmSelect) {
                 algorithmSelect.addEventListener('change', updateFormInputs);
                 updateFormInputs();
+            }
+
+            // Renderizar gráfico si hay datos
+            const chartXValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartXValues ?? new List<double>()));
+            const chartYValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartYValues ?? new List<double>()));
+            const rootX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RootX));
+            const rootY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RootY));
+
+            if (chartXValues && chartXValues.length > 0) {
+                const canvas = document.getElementById('functionChart');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Calcular rango de X e Y con expansión
+                    const xMin = Math.min(...chartXValues);
+                    const xMax = Math.max(...chartXValues);
+                    const yMin = Math.min(...chartYValues);
+                    const yMax = Math.max(...chartYValues);
+                    
+                    const xRange = xMax - xMin || 1;
+                    const yRange = yMax - yMin || 1;
+                    const xPadding = xRange * 0.25;
+                    const yPadding = yRange * 0.25;
+                    
+                    const datasets = [
+                        {
+                            label: 'f(x)',
+                            data: chartYValues,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0,
+                            pointHoverRadius: 5
+                        }
+                    ];
+
+                    // Agregar punto de raíz si existe
+                    if (rootX !== null && rootY !== null && !isNaN(parseFloat(rootX))) {
+                        datasets.push({
+                            label: 'Raíz encontrada',
+                            data: [{x: parseFloat(rootX), y: parseFloat(rootY)}],
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgb(255, 99, 132)',
+                            pointRadius: 8,
+                            pointHoverRadius: 12,
+                            showLine: false,
+                            type: 'scatter'
+                        });
+                    }
+
+                    const chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: chartXValues,
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                },
+                                filler: {
+                                    propagate: true
+                                },
+                                zoom: {
+                                    zoom: {
+                                        wheel: {
+                                            enabled: true,
+                                            speed: 0.1,
+                                            modifierKey: null
+                                        },
+                                        pinch: {
+                                            enabled: true
+                                        },
+                                        mode: 'xy'
+                                    },
+                                    pan: {
+                                        enabled: true,
+                                        mode: 'xy',
+                                        modifierKey: 'ctrl'
+                                    },
+                                    limits: {
+                                        x: {min: 'original', max: 'original'},
+                                        y: {min: 'original', max: 'original'}
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    type: 'linear',
+                                    position: 'bottom',
+                                    min: xMin - xPadding,
+                                    max: xMax + xPadding,
+                                    title: {
+                                        display: true,
+                                        text: 'x',
+                                        font: {
+                                            size: 14
+                                        }
+                                    },
+                                    grid: {
+                                        drawBorder: true,
+                                        color: function(context) {
+                                            if (context.tick.value === 0) {
+                                                return 'rgba(0, 0, 0, 0.8)';
+                                            }
+                                            return 'rgba(0, 0, 0, 0.05)';
+                                        },
+                                        lineWidth: function(context) {
+                                            return context.tick.value === 0 ? 2.5 : 1;
+                                        }
+                                    },
+                                    ticks: {
+                                        padding: 10,
+                                        autoSkip: true,
+                                        maxRotation: 0
+                                    }
+                                },
+                                y: {
+                                    position: 'left',
+                                    min: yMin - yPadding,
+                                    max: yMax + yPadding,
+                                    title: {
+                                        display: true,
+                                        text: 'f(x)',
+                                        font: {
+                                            size: 14
+                                        }
+                                    },
+                                    grid: {
+                                        drawBorder: true,
+                                        color: function(context) {
+                                            if (context.tick.value === 0) {
+                                                return 'rgba(0, 0, 0, 0.8)';
+                                            }
+                                            return 'rgba(0, 0, 0, 0.05)';
+                                        },
+                                        lineWidth: function(context) {
+                                            return context.tick.value === 0 ? 2.5 : 1;
+                                        }
+                                    },
+                                    ticks: {
+                                        padding: 10,
+                                        autoSkip: true
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // Agregar funcionalidad de reset de zoom
+                    const resetZoomBtn = document.getElementById('resetZoomBtn');
+                    if (resetZoomBtn) {
+                        resetZoomBtn.addEventListener('click', function() {
+                            chart.resetZoom();
+                        });
+                    }
+
+                    // Guardar referencia global al chart
+                    window.functionChart = chart;
+                }
             }
         });
     </script>

@@ -1,4 +1,17 @@
+using Serilog;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Configurar Serilog para logging a consola y archivo
+builder.Host.UseSerilog((context, services, loggerConfig) =>
+    loggerConfig
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File(
+            path: "logs/app-.txt",
+            rollingInterval: RollingInterval.Day,
+            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
+        ));
 
 // Add services to the container.
 builder.Services.AddRazorPages();
