@@ -45,6 +45,8 @@ public class IndexModel : PageModel
     public List<StepEntry> Steps { get; set; } = new();
     public List<double> ChartXValues { get; set; } = new();
     public List<double> ChartYValues { get; set; } = new();
+    public List<double> OverviewChartXValues { get; set; } = new();
+    public List<double> OverviewChartYValues { get; set; } = new();
     public double? RootX { get; set; }
     public double? RootY { get; set; }
 
@@ -160,6 +162,12 @@ public class IndexModel : PageModel
         RootY = numericalService.RootY;
         ChartXValues = chartService.ChartXValues;
         ChartYValues = chartService.ChartYValues;
+
+        // Generar gráfico de visión general (rango [-30, 30])
+        var overviewChartService = new ChartService(_loggerFactory, Function, SelectedAlgorithm);
+        overviewChartService.GenerateChart(-30, 30);
+        OverviewChartXValues = overviewChartService.ChartXValues;
+        OverviewChartYValues = overviewChartService.ChartYValues;
     }
 
     /// <summary>
@@ -172,6 +180,8 @@ public class IndexModel : PageModel
         Steps.Clear();
         ChartXValues.Clear();
         ChartYValues.Clear();
+        OverviewChartXValues.Clear();
+        OverviewChartYValues.Clear();
         RootX = null;
         RootY = null;
     }

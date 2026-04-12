@@ -6,6 +6,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.1.0/dist/chartjs-plugin-zoom.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
 <style>
     :root {
@@ -97,6 +100,16 @@
     h1, h5, p {
         color: #e0e0e0;
     }
+
+    /* Estilos para KaTeX */
+    .katex {
+        color: #e0e0e0;
+    }
+
+    #resultFunctionLatex {
+        font-family: 'Times New Roman', serif;
+        color: #e0e0e0;
+    }
 </style>
 
 <div class="container mt-4">
@@ -156,6 +169,10 @@
         <div class="card mt-4">
             <div class="card-body">
                 <h5 class="card-title">Resultado</h5>
+                <div class="mb-3">
+                    <strong>Función utilizada:</strong>
+                    <div id="resultFunctionLatex" class="border rounded p-2 mt-2" style="font-size: 1.2em; background-color: #2a2a2a; border-color: #3a3a3a;"></div>
+                </div>
                 <p class="card-text">@Model.ResultMessage</p>
                 @if (!string.IsNullOrEmpty(Model.SummaryMessage))
                 {
@@ -169,7 +186,7 @@
             <div class="card mt-4">
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h5 class="card-title" style="margin: 0;">Gráfico de la función</h5>
+                        <h5 class="card-title" style="margin: 0;">Gráfico de la función (Enfocado)</h5>
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="resetZoomBtn">Resetear Zoom</button>
                     </div>
                     <small class="text-muted">Rueda del ratón: zoom | Ctrl + Click: desplazamiento</small>
@@ -178,6 +195,19 @@
                     </div>
                 </div>
             </div>
+
+            @if (Model.OverviewChartXValues?.Count > 0)
+            {
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Gráfico de la función (Vista General)</h5>
+                        <small class="text-muted">Rango: -30 a 30 en ambos ejes</small>
+                        <div style="position: relative; width: 100%; height: 400px; margin-top: 10px;">
+                            <canvas id="overviewChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            }
         }
     }
 
@@ -279,11 +309,81 @@
             }
         }
 
+        // Función para convertir expresión matemática a LaTeX
+        function expressionToLatex(expr) {
+            if (!expr || expr.trim() === '') {
+                return '';
+            }
+
+            let latex = expr.trim();
+
+            // Reemplazar operadores
+            latex = latex.replace(/\*\*/g, '^'); // ** por ^
+            latex = latex.replace(/\*/g, ' \\cdot '); // * por \cdot
+            latex = latex.replace(/\//g, ' \\div '); // / por \div
+
+            // Reemplazar funciones matemáticas
+            latex = latex.replace(/sin\(/g, '\\sin(');
+            latex = latex.replace(/cos\(/g, '\\cos(');
+            latex = latex.replace(/tan\(/g, '\\tan(');
+            latex = latex.replace(/exp\(/g, '\\exp(');
+            latex = latex.replace(/log\(/g, '\\log(');
+            latex = latex.replace(/ln\(/g, '\\ln(');
+            latex = latex.replace(/sqrt\(/g, '\\sqrt{');
+            latex = latex.replace(/abs\(/g, '\\left|');
+            latex = latex.replace(/pow\(/g, ''); // pow(a,b) será manejado después
+
+            // Reemplazar constantes
+            latex = latex.replace(/\bpi\b/g, '\\pi');
+            latex = latex.replace(/\be\b/g, 'e');
+
+            // Manejar pow(a,b) -> a^b
+            latex = latex.replace(/pow\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, '$1^{$2}');
+
+            // Cerrar paréntesis para funciones que lo necesitan
+            latex = latex.replace(/\\sqrt\{([^}]+)\)/g, '\\sqrt{$1}');
+            latex = latex.replace(/\\left\|([^|]+)\)/g, '\\left|$1\\right|');
+
+            // Agregar la variable x en modo matemático
+            latex = latex.replace(/\bx\b/g, 'x');
+
+            return latex;
+        }
+
+        // Función para renderizar LaTeX en los resultados
+        function renderResultFunctionLatex() {
+            const resultDiv = document.getElementById('resultFunctionLatex');
+            const functionInput = document.getElementById('Function');
+
+            if (resultDiv && functionInput) {
+                const expr = functionInput.value;
+                const latexExpr = expressionToLatex(expr);
+
+                if (latexExpr) {
+                    try {
+                        katex.render(latexExpr, resultDiv, {
+                            throwOnError: false,
+                            displayMode: false
+                        });
+                    } catch (error) {
+                        resultDiv.textContent = 'Error al renderizar: ' + expr;
+                    }
+                } else {
+                    resultDiv.textContent = '';
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const algorithmSelect = document.getElementById('SelectedAlgorithm');
             if (algorithmSelect) {
                 algorithmSelect.addEventListener('change', updateFormInputs);
                 updateFormInputs();
+            }
+
+            // Renderizar LaTeX en resultados si hay resultados
+            if (@(!string.IsNullOrEmpty(Model.ResultMessage) ? "true" : "false")) {
+                renderResultFunctionLatex();
             }
 
             // Renderizar gráfico si hay datos
@@ -453,6 +553,133 @@
 
                     // Guardar referencia global al chart
                     window.functionChart = chart;
+                }
+            }
+
+            // Renderizar gráfico de visión general si hay datos
+            const overviewChartXValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OverviewChartXValues ?? new List<double>()));
+            const overviewChartYValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OverviewChartYValues ?? new List<double>()));
+
+            if (overviewChartXValues && overviewChartXValues.length > 0) {
+                const overviewCanvas = document.getElementById('overviewChart');
+                if (overviewCanvas) {
+                    const overviewCtx = overviewCanvas.getContext('2d');
+
+                    const overviewDatasets = [
+                        {
+                            label: 'f(x)',
+                            data: overviewChartYValues,
+                            borderColor: 'rgb(100, 200, 220)',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0,
+                            pointHoverRadius: 5
+                        }
+                    ];
+
+                    // Agregar punto de raíz si existe
+                    if (rootX !== null && rootY !== null && !isNaN(parseFloat(rootX))) {
+                        overviewDatasets.push({
+                            label: 'Raíz encontrada',
+                            data: [{x: parseFloat(rootX), y: parseFloat(rootY)}],
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgb(255, 99, 132)',
+                            pointRadius: 8,
+                            pointHoverRadius: 12,
+                            showLine: false,
+                            type: 'scatter'
+                        });
+                    }
+
+                    const overviewChart = new Chart(overviewCtx, {
+                        type: 'line',
+                        data: {
+                            labels: overviewChartXValues,
+                            datasets: overviewDatasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                },
+                                filler: {
+                                    propagate: true
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    type: 'linear',
+                                    position: 'bottom',
+                                    min: -30,
+                                    max: 30,
+                                    title: {
+                                        display: true,
+                                        text: 'x',
+                                        font: {
+                                            size: 14
+                                        }
+                                    },
+                                    grid: {
+                                        drawBorder: true,
+                                        color: function(context) {
+                                            if (context.tick.value === 0) {
+                                                return 'rgba(200, 200, 200, 0.8)';
+                                            }
+                                            return 'rgba(100, 100, 100, 0.2)';
+                                        },
+                                        lineWidth: function(context) {
+                                            return context.tick.value === 0 ? 2.5 : 1;
+                                        }
+                                    },
+                                    ticks: {
+                                        padding: 10,
+                                        autoSkip: true,
+                                        maxRotation: 0
+                                    }
+                                },
+                                y: {
+                                    position: 'left',
+                                    min: -30,
+                                    max: 30,
+                                    title: {
+                                        display: true,
+                                        text: 'f(x)',
+                                        font: {
+                                            size: 14
+                                        }
+                                    },
+                                    grid: {
+                                        drawBorder: true,
+                                        color: function(context) {
+                                            if (context.tick.value === 0) {
+                                                return 'rgba(200, 200, 200, 0.8)';
+                                            }
+                                            return 'rgba(100, 100, 100, 0.2)';
+                                        },
+                                        lineWidth: function(context) {
+                                            return context.tick.value === 0 ? 2.5 : 1;
+                                        }
+                                    },
+                                    ticks: {
+                                        padding: 10,
+                                        autoSkip: true
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // Guardar referencia global al overview chart
+                    window.overviewChart = overviewChart;
                 }
             }
         });
