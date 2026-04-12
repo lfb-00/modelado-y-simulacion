@@ -1,0 +1,179 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Modelado y simulación";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-3">Simulación numérica en .NET</h1>
+    <p>Calcula raíces usando una función ingresada por el usuario.</p>
+
+    <form method="post">
+        <div class="mb-3">
+            <label asp-for="SelectedAlgorithm" class="form-label">Método</label>
+            <select asp-for="SelectedAlgorithm" class="form-select">
+                <option value="bisection">Bisección</option>
+                <option value="newton">Newton-Raphson</option>
+                <option value="fixed-point">Punto fijo</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Function" class="form-label" id="functionLabel">Función</label>
+            <input asp-for="Function" class="form-control" />
+            <div class="form-text" id="functionHelpText">Ingrese la función en términos de x. Para punto fijo use g(x), para otros métodos use f(x).</div>
+        </div>
+
+        <div class="row g-3" id="bisectionInputs">
+            <div class="col-md-6">
+                <label asp-for="A" class="form-label">a</label>
+                <input asp-for="A" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="B" class="form-label">b</label>
+                <input asp-for="B" class="form-control" />
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2" id="x0Input">
+            <div class="col-md-6">
+                <label asp-for="X0" class="form-label">x₀</label>
+                <input asp-for="X0" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Tolerance" class="form-label">Tolerancia</label>
+                <input asp-for="Tolerance" class="form-control" />
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-md-6">
+                <label asp-for="MaxIterations" class="form-label">Máximo de iteraciones</label>
+                <input asp-for="MaxIterations" class="form-control" />
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Calcular</button>
+    </form>
+
+    @if (!string.IsNullOrEmpty(Model.ResultMessage))
+    {
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Resultado</h5>
+                <p class="card-text">@Model.ResultMessage</p>
+                @if (!string.IsNullOrEmpty(Model.SummaryMessage))
+                {
+                    <p class="card-text"><strong>@Model.SummaryMessage</strong></p>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.Steps?.Count > 0)
+    {
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">Pasos</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered mb-0">
+                        <thead>
+                            <tr>
+                                <th>Iter</th>
+                                @switch (Model.SelectedAlgorithm)
+                                {
+                                    case "bisection":
+                                        <th>a</th>
+                                        <th>b</th>
+                                        <th>c</th>
+                                        <th>f(a)</th>
+                                        <th>f(b)</th>
+                                        <th>f(c)</th>
+                                        <th>Error</th>
+                                        break;
+                                    case "newton":
+                                        <th>x</th>
+                                        <th>f(x)</th>
+                                        <th>f'(x)</th>
+                                        <th>Error</th>
+                                        break;
+                                    case "fixed-point":
+                                        <th>x</th>
+                                        <th>g(x)</th>
+                                        <th>Error</th>
+                                        break;
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var step in Model.Steps)
+                            {
+                                <tr>
+                                    <td>@step.Iteration</td>
+                                    @switch (Model.SelectedAlgorithm)
+                                    {
+                                        case "bisection":
+                                            <td>@(step.A?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.B?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.Mid?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.FA?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.FB?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.FC?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.Error?.ToString("E2") ?? "-")</td>
+                                            break;
+                                        case "newton":
+                                            <td>@(step.X?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.FX?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.DFX?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.Error?.ToString("E2") ?? "-")</td>
+                                            break;
+                                        case "fixed-point":
+                                            <td>@(step.X?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.G?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.Error?.ToString("E2") ?? "-")</td>
+                                            break;
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <script>
+        function updateFormInputs() {
+            const algorithm = document.getElementById('SelectedAlgorithm').value;
+            const bisectionInputs = document.getElementById('bisectionInputs');
+            const x0Input = document.getElementById('x0Input');
+            const functionLabel = document.getElementById('functionLabel');
+            const functionHelp = document.getElementById('functionHelpText');
+
+            if (algorithm === 'bisection') {
+                bisectionInputs.style.display = 'flex';
+                x0Input.style.display = 'none';
+                functionLabel.textContent = 'Función f(x)';
+                functionHelp.textContent = 'Ingrese f(x). La bisección necesita un intervalo [a, b] con cambio de signo.';
+            } else if (algorithm === 'newton') {
+                bisectionInputs.style.display = 'none';
+                x0Input.style.display = 'flex';
+                functionLabel.textContent = 'Función f(x)';
+                functionHelp.textContent = 'Ingrese f(x). Newton-Raphson usa x₀ como semilla inicial.';
+            } else {
+                bisectionInputs.style.display = 'none';
+                x0Input.style.display = 'flex';
+                functionLabel.textContent = 'Función g(x)';
+                functionHelp.textContent = 'Ingrese g(x). El método de punto fijo itera xₙ₊₁ = g(xₙ).';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const algorithmSelect = document.getElementById('SelectedAlgorithm');
+            if (algorithmSelect) {
+                algorithmSelect.addEventListener('change', updateFormInputs);
+                updateFormInputs();
+            }
+        });
+    </script>
+</div>

@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET: dotnet-webapp",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-dotnet",
+            "program": "${workspaceFolder}/dotnet-webapp/bin/Debug/net10.0/dotnet-webapp.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/dotnet-webapp",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s",
+                "action": "openExternally"
+            },
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Debug app.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/app.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}
