@@ -728,3 +728,4 @@
 2026-04-12 13:01:42.091 [INF] Sending file. Request path: 'lib/bootstrap/dist/js/bootstrap.bundle.min.493y06b0oq.js'. Physical path: 'C:\Users\d78650\src\modelado-y-simulacion\dotnet-webapp\obj\Debug\net10.0\compressed\orw3a903q6-{0}-493y06b0oq-493y06b0oq.gz'
 2026-04-12 13:01:42.093 [INF] Executed endpoint 'Microsoft.AspNetCore.Routing.RouteEndpoint'
 2026-04-12 13:01:42.095 [INF] Request finished HTTP/1.1 GET http://localhost:5050/lib/bootstrap/dist/js/bootstrap.bundle.min.493y06b0oq.js - 200 80764 text/javascript 125.712ms
+2026-04-12 13:03:25.225 [INF] Application is shutting down...
