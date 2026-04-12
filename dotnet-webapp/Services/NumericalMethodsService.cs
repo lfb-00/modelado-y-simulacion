@@ -56,8 +56,31 @@ public class NumericalMethodsService
 
     public void ComputeBisection(double a, double b)
     {
+        if (a > b)
+        {
+            (a, b) = (b, a);
+        }
+
         double fa = F(a);
         double fb = F(b);
+
+        if (Math.Abs(fa) < _tolerance)
+        {
+            RootX = a;
+            RootY = fa;
+            ResultMessage = $"Raíz aproximada: {a:F10} (método bisección)";
+            SummaryMessage = "La raíz coincide con el extremo izquierdo del intervalo.";
+            return;
+        }
+
+        if (Math.Abs(fb) < _tolerance)
+        {
+            RootX = b;
+            RootY = fb;
+            ResultMessage = $"Raíz aproximada: {b:F10} (método bisección)";
+            SummaryMessage = "La raíz coincide con el extremo derecho del intervalo.";
+            return;
+        }
 
         if (fa * fb > 0)
         {
@@ -68,12 +91,11 @@ public class NumericalMethodsService
 
         _logger.LogInformation("Iniciando Bisección: f({A})={FA}, f({B})={FB}", a, fa, b, fb);
 
-        double previousC = double.NaN;
         for (int i = 1; i <= _maxIterations; i++)
         {
-            double c = (a + b) / 2;
+            double c = (a + b) / 2.0;
             double fc = F(c);
-            double error = i == 1 ? Math.Abs(b - a) : Math.Abs(c - previousC);
+            double error = (b - a) / 2.0;
 
             Steps.Add(new StepEntry
             {
@@ -89,7 +111,7 @@ public class NumericalMethodsService
 
             _logger.LogDebug("Iteración {Iteration}: c={C}, f(c)={FC}, error={Error}", i, c, fc, error);
 
-            if (Math.Abs(fc) < _tolerance || (b - a) / 2 < _tolerance)
+            if (Math.Abs(fc) < _tolerance || error < _tolerance)
             {
                 ResultMessage = $"Raíz aproximada: {c:F10} (método bisección)";
                 SummaryMessage = $"Iteraciones: {i}, f(c) = {fc:E2}";
@@ -109,8 +131,6 @@ public class NumericalMethodsService
                 a = c;
                 fa = fc;
             }
-
-            previousC = c;
         }
 
         ResultMessage = $"No se encontró convergencia después de {_maxIterations} iteraciones.";
