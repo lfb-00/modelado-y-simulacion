@@ -130,6 +130,14 @@
             <label asp-for="Function" class="form-label" id="functionLabel">Función</label>
             <input asp-for="Function" class="form-control" />
             <div class="form-text" id="functionHelpText">Ingrese la función en términos de x. Para punto fijo use g(x), para otros métodos use f(x).</div>
+            <div class="form-text mt-2">
+                <strong>Símbolos y funciones admitidas:</strong>
+                <span> x, +, -, *, /, ^, paréntesis (), constantes pi y e, funciones sin(x), cos(x), tan(x), exp(x), log(x), ln(x), sqrt(x), abs(x), pow(a,b).</span>
+            </div>
+            <div class="form-text">
+                <strong>Ejemplos:</strong>
+                <span>sqrt(x) + log(x), sin(x) - x/2, x^3 - 4*x + 1, exp(-x) - x, abs(x-2), pow(x,2) - 9, cos(x) - x, ln(x) + 2.</span>
+            </div>
         </div>
 
         <div class="row g-3" id="bisectionInputs">
