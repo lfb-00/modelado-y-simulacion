@@ -200,8 +200,11 @@
             {
                 <div class="card mt-4">
                     <div class="card-body">
-                        <h5 class="card-title">Gráfico de la función (Vista General)</h5>
-                        <small class="text-muted">Rango: -30 a 30 en ambos ejes</small>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h5 class="card-title" style="margin: 0;">Gráfico de la función (Vista General)</h5>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="resetOverviewZoomBtn">Resetear Zoom</button>
+                        </div>
+                        <small class="text-muted">Rueda del ratón: zoom | Ctrl + Click: desplazamiento</small>
                         <div style="position: relative; width: 100%; height: 400px; margin-top: 10px;">
                             <canvas id="overviewChart"></canvas>
                         </div>
@@ -613,6 +616,28 @@
                                 },
                                 filler: {
                                     propagate: true
+                                },
+                                zoom: {
+                                    zoom: {
+                                        wheel: {
+                                            enabled: true,
+                                            speed: 0.1,
+                                            modifierKey: null
+                                        },
+                                        pinch: {
+                                            enabled: true
+                                        },
+                                        mode: 'xy'
+                                    },
+                                    pan: {
+                                        enabled: true,
+                                        mode: 'xy',
+                                        modifierKey: 'ctrl'
+                                    },
+                                    limits: {
+                                        x: {min: 'original', max: 'original'},
+                                        y: {min: 'original', max: 'original'}
+                                    }
                                 }
                             },
                             scales: {
@@ -680,6 +705,14 @@
 
                     // Guardar referencia global al overview chart
                     window.overviewChart = overviewChart;
+
+                    // Agregar funcionalidad de reset de zoom para overview chart
+                    const resetOverviewZoomBtn = document.getElementById('resetOverviewZoomBtn');
+                    if (resetOverviewZoomBtn) {
+                        resetOverviewZoomBtn.addEventListener('click', function() {
+                            overviewChart.resetZoom();
+                        });
+                    }
                 }
             }
         });
