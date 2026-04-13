@@ -48,8 +48,13 @@ public class IndexModel : PageModel
     public List<double> ChartYValues { get; set; } = new();
     public List<double> OverviewChartXValues { get; set; } = new();
     public List<double> OverviewChartYValues { get; set; } = new();
+    public List<int> IterationNumbers { get; set; } = new();
+    public List<double> IterationEstimates { get; set; } = new();
+    public List<double> IterationErrors { get; set; } = new();
+    public List<double> IterationResiduals { get; set; } = new();
     public double? RootX { get; set; }
     public double? RootY { get; set; }
+    public string ConvergenceComment { get; set; } = string.Empty;
 
     public void OnGet()
     {
@@ -216,6 +221,12 @@ public class IndexModel : PageModel
                 chartService.GenerateChart(X0 - 2, X0 + 2);
                 break;
 
+            case "fixed-point-aitken":
+                _logger.LogInformation("Ejecutando Punto Fijo con Aitken con x0={X0}", X0);
+                numericalService.ComputeFixedPointAitken(X0);
+                chartService.GenerateChart(X0 - 2, X0 + 2);
+                break;
+
             default:
                 ResultMessage = "Seleccione un método válido.";
                 _logger.LogError("Algoritmo inválido: {Algorithm}", SelectedAlgorithm);
@@ -236,6 +247,74 @@ public class IndexModel : PageModel
         overviewChartService.GenerateChart(-30, 30);
         OverviewChartXValues = overviewChartService.ChartXValues;
         OverviewChartYValues = overviewChartService.ChartYValues;
+
+        BuildConvergenceSeries();
+        ConvergenceComment = BuildConvergenceComment();
+    }
+
+    private void BuildConvergenceSeries()
+    {
+        IterationNumbers.Clear();
+        IterationEstimates.Clear();
+        IterationErrors.Clear();
+        IterationResiduals.Clear();
+
+        foreach (var step in Steps)
+        {
+            double? estimate = SelectedAlgorithm switch
+            {
+                "bisection" => step.Mid,
+                "newton" => step.X,
+                "fixed-point" => step.G,
+                "fixed-point-aitken" => step.AitkenX,
+                _ => null
+            };
+
+            if (!estimate.HasValue || !step.Error.HasValue)
+            {
+                continue;
+            }
+
+            IterationNumbers.Add(step.Iteration);
+            IterationEstimates.Add(estimate.Value);
+            IterationErrors.Add(Math.Max(step.Error.Value, 1e-16));
+
+            double residual = step.Residual ?? SelectedAlgorithm switch
+            {
+                "bisection" => Math.Abs(step.FC ?? 0),
+                "newton" => Math.Abs(step.FX ?? 0),
+                "fixed-point" => Math.Abs((step.G ?? 0) - (step.X ?? 0)),
+                _ => step.Error.Value
+            };
+
+            IterationResiduals.Add(Math.Max(residual, 1e-16));
+        }
+    }
+
+    private string BuildConvergenceComment()
+    {
+        if (IterationErrors.Count < 3)
+        {
+            return "Sin suficientes iteraciones para estimar orden de convergencia.";
+        }
+
+        double e0 = IterationErrors[^3];
+        double e1 = IterationErrors[^2];
+        double e2 = IterationErrors[^1];
+
+        if (e0 <= 0 || e1 <= 0 || e2 <= 0)
+        {
+            return "No se pudo estimar el orden de convergencia por errores no positivos.";
+        }
+
+        double denominator = Math.Log(e1 / e0);
+        if (Math.Abs(denominator) < 1e-12)
+        {
+            return "Orden de convergencia no estimable (razón de errores casi constante).";
+        }
+
+        double order = Math.Log(e2 / e1) / denominator;
+        return $"Orden de convergencia estimado: p ≈ {order:F3}.";
     }
 
     /// <summary>
@@ -250,6 +329,11 @@ public class IndexModel : PageModel
         ChartYValues.Clear();
         OverviewChartXValues.Clear();
         OverviewChartYValues.Clear();
+        IterationNumbers.Clear();
+        IterationEstimates.Clear();
+        IterationErrors.Clear();
+        IterationResiduals.Clear();
+        ConvergenceComment = string.Empty;
         RootX = null;
         RootY = null;
     }

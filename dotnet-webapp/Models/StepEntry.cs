@@ -23,7 +23,10 @@ public class StepEntry
     public double? FX { get; set; }
     public double? DFX { get; set; }
     public double? G { get; set; }
+    public double? GG { get; set; }
+    public double? AitkenX { get; set; }
 
     // Común para todos
     public double? Error { get; set; }
+    public double? Residual { get; set; }
 }

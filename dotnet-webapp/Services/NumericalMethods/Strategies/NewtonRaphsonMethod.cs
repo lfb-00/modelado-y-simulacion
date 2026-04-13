@@ -34,7 +34,8 @@ internal sealed class NewtonRaphsonMethod : INumericalMethod
                 X = x,
                 FX = fx,
                 DFX = dfx,
-                Error = error
+                Error = error,
+                Residual = Math.Abs(fx)
             });
 
             context.Logger.LogDebug("Iteración {Iteration}: x={X}, f(x)={FX}, f'(x)={DFX}, error={Error}", i, x, fx, dfx, error);

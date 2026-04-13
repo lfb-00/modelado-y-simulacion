@@ -23,7 +23,8 @@ internal sealed class FixedPointMethod : INumericalMethod
                 Iteration = i,
                 X = x,
                 G = next,
-                Error = error
+                Error = error,
+                Residual = error
             });
 
             context.Logger.LogDebug("Iteración {Iteration}: x={X}, g(x)={G}, error={Error}", i, x, next, error);

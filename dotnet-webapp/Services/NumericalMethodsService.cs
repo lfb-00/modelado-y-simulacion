@@ -51,14 +51,19 @@ public class NumericalMethodsService
         Execute(new FixedPointMethod(), x0, null);
     }
 
+    public void ComputeFixedPointAitken(double x0)
+    {
+        Execute(new FixedPointAitkenMethod(), x0, null);
+    }
+
     private void Execute(INumericalMethod method, double first, double? second)
     {
-        if (method.MethodKey == "fixed-point" && _selectedAlgorithm != "fixed-point")
+        if (IsFixedPointFamily(method.MethodKey) && !IsFixedPointFamily(_selectedAlgorithm))
         {
             throw new InvalidOperationException("Use F(x) para el método seleccionado.");
         }
 
-        if (method.MethodKey != "fixed-point" && _selectedAlgorithm == "fixed-point")
+        if (!IsFixedPointFamily(method.MethodKey) && IsFixedPointFamily(_selectedAlgorithm))
         {
             throw new InvalidOperationException("Use G(x) para punto fijo.");
         }
@@ -69,5 +74,10 @@ public class NumericalMethodsService
         RootY = result.RootY;
         ResultMessage = result.ResultMessage;
         SummaryMessage = result.SummaryMessage;
+    }
+
+    private static bool IsFixedPointFamily(string methodKey)
+    {
+        return methodKey == "fixed-point" || methodKey == "fixed-point-aitken";
     }
 }

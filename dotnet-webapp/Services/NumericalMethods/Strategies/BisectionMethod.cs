@@ -67,7 +67,8 @@ internal sealed class BisectionMethod : INumericalMethod
                 FA = fa,
                 FB = fb,
                 FC = fc,
-                Error = error
+                Error = error,
+                Residual = Math.Abs(fc)
             });
 
             context.Logger.LogDebug("Iteración {Iteration}: c={C}, f(c)={FC}, error={Error}", i, c, fc, error);
