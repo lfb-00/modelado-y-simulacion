@@ -239,6 +239,17 @@ public class IndexModel : PageModel
         SummaryMessage = numericalService.SummaryMessage;
         RootX = numericalService.RootX;
         RootY = numericalService.RootY;
+
+        if (RootX.HasValue && !double.IsFinite(RootX.Value))
+        {
+            RootX = null;
+        }
+
+        if (RootY.HasValue && !double.IsFinite(RootY.Value))
+        {
+            RootY = null;
+        }
+
         ChartXValues = chartService.ChartXValues;
         ChartYValues = chartService.ChartYValues;
 
@@ -275,6 +286,11 @@ public class IndexModel : PageModel
                 continue;
             }
 
+            if (!double.IsFinite(estimate.Value) || !double.IsFinite(step.Error.Value))
+            {
+                continue;
+            }
+
             IterationNumbers.Add(step.Iteration);
             IterationEstimates.Add(estimate.Value);
             IterationErrors.Add(Math.Max(step.Error.Value, 1e-16));
@@ -286,6 +302,11 @@ public class IndexModel : PageModel
                 "fixed-point" => Math.Abs((step.G ?? 0) - (step.X ?? 0)),
                 _ => step.Error.Value
             };
+
+            if (!double.IsFinite(residual))
+            {
+                continue;
+            }
 
             IterationResiduals.Add(Math.Max(residual, 1e-16));
         }
