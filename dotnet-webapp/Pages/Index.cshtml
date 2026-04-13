@@ -180,6 +180,10 @@
                 <div class="mb-3">
                     <strong>Función utilizada:</strong>
                     <div id="resultFunctionLatex" class="border rounded p-2 mt-2" style="font-size: 1.2em; background-color: #2a2a2a; border-color: #3a3a3a;"></div>
+                    <div class="mt-2">
+                        <strong>LaTeX sin renderizar:</strong>
+                        <div id="resultFunctionLatexRaw" class="border rounded p-2 mt-2" style="font-family: Consolas, 'Courier New', monospace; background-color: #222; border-color: #3a3a3a; white-space: pre-wrap;"></div>
+                    </div>
                 </div>
                 <p class="card-text">@Model.ResultMessage</p>
                 @if (!string.IsNullOrEmpty(Model.SummaryMessage))
@@ -364,11 +368,16 @@
         // Función para renderizar LaTeX en los resultados
         function renderResultFunctionLatex() {
             const resultDiv = document.getElementById('resultFunctionLatex');
+            const resultRawDiv = document.getElementById('resultFunctionLatexRaw');
             const functionInput = document.getElementById('Function');
 
             if (resultDiv && functionInput) {
                 const expr = functionInput.value;
                 const latexExpr = expressionToLatex(expr);
+
+                if (resultRawDiv) {
+                    resultRawDiv.textContent = latexExpr || '';
+                }
 
                 if (latexExpr) {
                     try {
