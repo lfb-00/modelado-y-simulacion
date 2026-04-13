@@ -94,12 +94,16 @@ public class FunctionParser
 
     private double ParseFactor()
     {
-        double value = ParseUnary();
-        while (Match('^'))
+        double baseValue = ParseUnary();
+
+        // Exponenciación asociativa a derecha: 2^x^2 = 2^(x^2)
+        if (Match('^'))
         {
-            value = Math.Pow(value, ParseUnary());
+            double exponent = ParseFactor();
+            return Math.Pow(baseValue, exponent);
         }
-        return value;
+
+        return baseValue;
     }
 
     private double ParseUnary()
