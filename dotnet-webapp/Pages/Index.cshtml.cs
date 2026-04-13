@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using dotnet_webapp.Models;
 using dotnet_webapp.Services;
+using System.Globalization;
 
 namespace dotnet_webapp.Pages;
 
@@ -59,6 +60,9 @@ public class IndexModel : PageModel
     {
         ClearResults();
 
+        if (!NormalizeNumericInputs())
+            return;
+
         _logger.LogInformation("Inicio de cálculo - Algoritmo: {Algorithm}, Tolerancia: {Tolerance}, MaxIteraciones: {MaxIterations}", 
             SelectedAlgorithm, Tolerance, MaxIterations);
 
@@ -82,6 +86,70 @@ public class IndexModel : PageModel
         }
 
         _logger.LogInformation("Cálculo completado - Resultado: {Result}", ResultMessage);
+    }
+
+    /// <summary>
+    /// Normaliza entradas numéricas para aceptar tanto coma como punto decimal.
+    /// Evita que 0.2 se interprete como 2 cuando la cultura usa coma decimal.
+    /// </summary>
+    private bool NormalizeNumericInputs()
+    {
+        if (!TryParseFlexibleDouble("Tolerance", out var tolerance))
+        {
+            ResultMessage = "Tolerancia inválida. Use formato numérico como 1e-6, 0.000001, 0,000001.";
+            return false;
+        }
+        Tolerance = tolerance;
+
+        if (!int.TryParse(Request.Form["MaxIterations"], NumberStyles.Integer, CultureInfo.InvariantCulture, out var maxIterations) &&
+            !int.TryParse(Request.Form["MaxIterations"], NumberStyles.Integer, CultureInfo.CurrentCulture, out maxIterations))
+        {
+            ResultMessage = "Máximo de iteraciones inválido.";
+            return false;
+        }
+        MaxIterations = maxIterations;
+
+        if (SelectedAlgorithm == "bisection")
+        {
+            if (!TryParseFlexibleDouble("A", out var a) || !TryParseFlexibleDouble("B", out var b))
+            {
+                ResultMessage = "Intervalo inválido. Use valores como 0.2 o 0,2.";
+                return false;
+            }
+
+            A = a;
+            B = b;
+        }
+        else
+        {
+            if (!TryParseFlexibleDouble("X0", out var x0))
+            {
+                ResultMessage = "Semilla inicial inválida. Use un valor como 1.5 o 1,5.";
+                return false;
+            }
+
+            X0 = x0;
+        }
+
+        return true;
+    }
+
+    private bool TryParseFlexibleDouble(string key, out double value)
+    {
+        value = 0;
+        string raw = Request.Form[key].ToString().Trim();
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        const NumberStyles strictFloat = NumberStyles.AllowLeadingWhite |
+                                         NumberStyles.AllowTrailingWhite |
+                                         NumberStyles.AllowLeadingSign |
+                                         NumberStyles.AllowDecimalPoint |
+                                         NumberStyles.AllowExponent;
+
+        return double.TryParse(raw, strictFloat, CultureInfo.InvariantCulture, out value) ||
+               double.TryParse(raw, strictFloat, CultureInfo.CurrentCulture, out value);
     }
 
     /// <summary>

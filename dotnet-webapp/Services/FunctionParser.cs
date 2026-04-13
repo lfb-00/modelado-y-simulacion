@@ -68,12 +68,28 @@ public class FunctionParser
             {
                 value /= ParseFactor();
             }
+            else if (IsImplicitMultiplicationAhead())
+            {
+                value *= ParseFactor();
+            }
             else
             {
                 break;
             }
         }
         return value;
+    }
+
+    private bool IsImplicitMultiplicationAhead()
+    {
+        SkipWhitespace();
+        if (_pos >= _text.Length)
+        {
+            return false;
+        }
+
+        char c = _text[_pos];
+        return c == '(' || IsLetter(c) || char.IsDigit(c) || c == '.';
     }
 
     private double ParseFactor()
