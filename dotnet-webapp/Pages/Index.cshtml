@@ -281,6 +281,7 @@
                                         <th>x</th>
                                         <th>f(x)</th>
                                         <th>f'(x)</th>
+                                        <th>xₙ₊₁ = xₙ - f(xₙ)/f'(xₙ)</th>
                                         <th>Error abs</th>
                                         <th>Error rel</th>
                                         <th>Residual |f(x)|</th>
@@ -325,6 +326,7 @@
                                             <td>@(step.X?.ToString("F8") ?? "-")</td>
                                             <td>@(step.FX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.DFX?.ToString("F8") ?? "-")</td>
+                                            <td>@(step.NextX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.Error?.ToString("E2") ?? "-")</td>
                                             <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
                                             <td>@(step.Residual?.ToString("E2") ?? "-")</td>

@@ -35,6 +35,7 @@ internal sealed class NewtonRaphsonMethod : INumericalMethod
                 X = x,
                 FX = fx,
                 DFX = dfx,
+                NextX = next,
                 Error = error,
                 RelativeError = relativeError,
                 Residual = Math.Abs(fx)
