@@ -57,6 +57,7 @@ internal sealed class BisectionMethod : INumericalMethod
             double c = (a + b) / 2.0;
             double fc = context.EvaluateF(c);
             double error = (b - a) / 2.0;
+            double relativeError = error / Math.Max(Math.Abs(c), 1e-12);
 
             result.Steps.Add(new StepEntry
             {
@@ -68,6 +69,7 @@ internal sealed class BisectionMethod : INumericalMethod
                 FB = fb,
                 FC = fc,
                 Error = error,
+                RelativeError = relativeError,
                 Residual = Math.Abs(fc)
             });
 

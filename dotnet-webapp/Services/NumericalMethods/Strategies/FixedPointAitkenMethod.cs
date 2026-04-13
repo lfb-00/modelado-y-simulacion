@@ -30,6 +30,7 @@ internal sealed class FixedPointAitkenMethod : INumericalMethod
             double delta = gx - x;
             double xAitken = x - (delta * delta) / denominator;
             double error = Math.Abs(xAitken - x);
+            double relativeError = error / Math.Max(Math.Abs(xAitken), 1e-12);
             double residual = Math.Abs(context.EvaluateG(xAitken) - xAitken);
 
             result.Steps.Add(new StepEntry
@@ -40,6 +41,7 @@ internal sealed class FixedPointAitkenMethod : INumericalMethod
                 GG = ggx,
                 AitkenX = xAitken,
                 Error = error,
+                RelativeError = relativeError,
                 Residual = residual
             });
 

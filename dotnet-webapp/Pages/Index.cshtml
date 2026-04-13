@@ -244,7 +244,7 @@
                             </div>
                         </div>
                         <div class="col-lg-6">
-                            <h6>Error y residual (escala log)</h6>
+                            <h6>Error absoluto, relativo y residual (escala log)</h6>
                             <div style="position: relative; width: 100%; height: 320px;">
                                 <canvas id="iterationErrorChart"></canvas>
                             </div>
@@ -274,18 +274,22 @@
                                         <th>f(a)</th>
                                         <th>f(b)</th>
                                         <th>f(c)</th>
-                                        <th>Error</th>
+                                        <th>Error abs</th>
+                                        <th>Error rel</th>
                                         break;
                                     case "newton":
                                         <th>x</th>
                                         <th>f(x)</th>
                                         <th>f'(x)</th>
-                                        <th>Error</th>
+                                        <th>Error abs</th>
+                                        <th>Error rel</th>
+                                        <th>Residual |f(x)|</th>
                                         break;
                                     case "fixed-point":
                                         <th>x</th>
                                         <th>g(x)</th>
-                                        <th>Error</th>
+                                        <th>Error abs</th>
+                                        <th>Error rel</th>
                                         <th>Residual |g(x)-x|</th>
                                         break;
                                     case "fixed-point-aitken":
@@ -293,7 +297,8 @@
                                         <th>g(x_n)</th>
                                         <th>g(g(x_n))</th>
                                         <th>x̂ (Aitken)</th>
-                                        <th>Error |x̂-x_n|</th>
+                                        <th>Error abs |x̂-x_n|</th>
+                                        <th>Error rel</th>
                                         <th>Residual |g(x̂)-x̂|</th>
                                         break;
                                 }
@@ -314,17 +319,21 @@
                                             <td>@(step.FB?.ToString("F8") ?? "-")</td>
                                             <td>@(step.FC?.ToString("F8") ?? "-")</td>
                                             <td>@(step.Error?.ToString("E2") ?? "-")</td>
+                                            <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
                                             break;
                                         case "newton":
                                             <td>@(step.X?.ToString("F8") ?? "-")</td>
                                             <td>@(step.FX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.DFX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.Error?.ToString("E2") ?? "-")</td>
+                                            <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
+                                            <td>@(step.Residual?.ToString("E2") ?? "-")</td>
                                             break;
                                         case "fixed-point":
                                             <td>@(step.X?.ToString("F8") ?? "-")</td>
                                             <td>@(step.G?.ToString("F8") ?? "-")</td>
                                             <td>@(step.Error?.ToString("E2") ?? "-")</td>
+                                            <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
                                             <td>@(step.Residual?.ToString("E2") ?? "-")</td>
                                             break;
                                         case "fixed-point-aitken":
@@ -333,6 +342,7 @@
                                             <td>@(step.GG?.ToString("F8") ?? "-")</td>
                                             <td>@(step.AitkenX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.Error?.ToString("E2") ?? "-")</td>
+                                            <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
                                             <td>@(step.Residual?.ToString("E2") ?? "-")</td>
                                             break;
                                     }
@@ -788,6 +798,7 @@
             const iterationNumbers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IterationNumbers ?? new List<int>()));
             const iterationEstimates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IterationEstimates ?? new List<double>()));
             const iterationErrors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IterationErrors ?? new List<double>()));
+            const iterationRelativeErrors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IterationRelativeErrors ?? new List<double>()));
             const iterationResiduals = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IterationResiduals ?? new List<double>()));
 
             if (iterationNumbers && iterationNumbers.length > 0) {
@@ -829,10 +840,19 @@
                             labels: iterationNumbers,
                             datasets: [
                                 {
-                                    label: 'Error',
+                                    label: 'Error absoluto',
                                     data: iterationErrors,
                                     borderColor: 'rgb(255, 99, 132)',
                                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                    borderWidth: 2,
+                                    tension: 0.15,
+                                    pointRadius: 2
+                                },
+                                {
+                                    label: 'Error relativo',
+                                    data: iterationRelativeErrors,
+                                    borderColor: 'rgb(255, 205, 86)',
+                                    backgroundColor: 'rgba(255, 205, 86, 0.2)',
                                     borderWidth: 2,
                                     tension: 0.15,
                                     pointRadius: 2

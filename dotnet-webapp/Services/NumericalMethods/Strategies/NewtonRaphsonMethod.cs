@@ -27,6 +27,7 @@ internal sealed class NewtonRaphsonMethod : INumericalMethod
 
             double next = x - fx / dfx;
             double error = Math.Abs(next - x);
+            double relativeError = error / Math.Max(Math.Abs(next), 1e-12);
 
             result.Steps.Add(new StepEntry
             {
@@ -35,6 +36,7 @@ internal sealed class NewtonRaphsonMethod : INumericalMethod
                 FX = fx,
                 DFX = dfx,
                 Error = error,
+                RelativeError = relativeError,
                 Residual = Math.Abs(fx)
             });
 

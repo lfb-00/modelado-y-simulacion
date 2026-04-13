@@ -17,6 +17,7 @@ internal sealed class FixedPointMethod : INumericalMethod
         {
             double next = context.EvaluateG(x);
             double error = Math.Abs(next - x);
+            double relativeError = error / Math.Max(Math.Abs(next), 1e-12);
 
             result.Steps.Add(new StepEntry
             {
@@ -24,6 +25,7 @@ internal sealed class FixedPointMethod : INumericalMethod
                 X = x,
                 G = next,
                 Error = error,
+                RelativeError = relativeError,
                 Residual = error
             });
 

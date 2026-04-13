@@ -51,6 +51,7 @@ public class IndexModel : PageModel
     public List<int> IterationNumbers { get; set; } = new();
     public List<double> IterationEstimates { get; set; } = new();
     public List<double> IterationErrors { get; set; } = new();
+    public List<double> IterationRelativeErrors { get; set; } = new();
     public List<double> IterationResiduals { get; set; } = new();
     public double? RootX { get; set; }
     public double? RootY { get; set; }
@@ -268,6 +269,7 @@ public class IndexModel : PageModel
         IterationNumbers.Clear();
         IterationEstimates.Clear();
         IterationErrors.Clear();
+        IterationRelativeErrors.Clear();
         IterationResiduals.Clear();
 
         foreach (var step in Steps)
@@ -291,9 +293,16 @@ public class IndexModel : PageModel
                 continue;
             }
 
+            double relativeError = step.RelativeError ?? (step.Error.Value / Math.Max(Math.Abs(estimate.Value), 1e-12));
+            if (!double.IsFinite(relativeError))
+            {
+                continue;
+            }
+
             IterationNumbers.Add(step.Iteration);
             IterationEstimates.Add(estimate.Value);
             IterationErrors.Add(Math.Max(step.Error.Value, 1e-16));
+            IterationRelativeErrors.Add(Math.Max(relativeError, 1e-16));
 
             double residual = step.Residual ?? SelectedAlgorithm switch
             {
@@ -353,6 +362,7 @@ public class IndexModel : PageModel
         IterationNumbers.Clear();
         IterationEstimates.Clear();
         IterationErrors.Clear();
+        IterationRelativeErrors.Clear();
         IterationResiduals.Clear();
         ConvergenceComment = string.Empty;
         RootX = null;
