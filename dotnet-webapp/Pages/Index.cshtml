@@ -268,39 +268,39 @@
                                 @switch (Model.SelectedAlgorithm)
                                 {
                                     case "bisection":
-                                        <th>a</th>
-                                        <th>b</th>
-                                        <th>c</th>
-                                        <th>f(a)</th>
-                                        <th>f(b)</th>
-                                        <th>f(c)</th>
-                                        <th>Error abs</th>
-                                        <th>Error rel</th>
+                                        <th>a_n</th>
+                                        <th>b_n</th>
+                                        <th>c_n = (a_n+b_n)/2</th>
+                                        <th>f(a_n)</th>
+                                        <th>f(b_n)</th>
+                                        <th>f(c_n)</th>
+                                        <th>Error abs = (b_n-a_n)/2</th>
+                                        <th>Error rel = ErrorAbs/max(|c_n|,1e-12)</th>
                                         break;
                                     case "newton":
-                                        <th>x</th>
-                                        <th>f(x)</th>
-                                        <th>f'(x)</th>
-                                        <th>xₙ₊₁ = xₙ - f(xₙ)/f'(xₙ)</th>
-                                        <th>Error abs</th>
-                                        <th>Error rel</th>
-                                        <th>Residual |f(x)|</th>
+                                        <th>x_n</th>
+                                        <th>f(x_n)</th>
+                                        <th>f'(x_n)</th>
+                                        <th>x_(n+1) = x_n - f(x_n)/f'(x_n)</th>
+                                        <th>Error abs = |x_(n+1)-x_n|</th>
+                                        <th>Error rel = |x_(n+1)-x_n|/|x_(n+1)|</th>
+                                        <th>Residual = |f(x_n)|</th>
                                         break;
                                     case "fixed-point":
-                                        <th>x</th>
-                                        <th>g(x)</th>
-                                        <th>Error abs</th>
-                                        <th>Error rel</th>
-                                        <th>Residual |g(x)-x|</th>
+                                        <th>x_n</th>
+                                        <th>x_(n+1) = g(x_n)</th>
+                                        <th>Error abs = |x_(n+1)-x_n|</th>
+                                        <th>Error rel = |x_(n+1)-x_n|/|x_(n+1)|</th>
+                                        <th>Residual = |g(x_n)-x_n|</th>
                                         break;
                                     case "fixed-point-aitken":
                                         <th>x_n</th>
                                         <th>g(x_n)</th>
                                         <th>g(g(x_n))</th>
-                                        <th>x̂ (Aitken)</th>
+                                        <th>x̂_n (Aitken)</th>
                                         <th>Error abs |x̂-x_n|</th>
-                                        <th>Error rel</th>
-                                        <th>Residual |g(x̂)-x̂|</th>
+                                        <th>Error rel = |x̂_n-x_n|/|x̂_n|</th>
+                                        <th>Residual = |g(x̂_n)-x̂_n|</th>
                                         break;
                                 }
                             </tr>
@@ -328,7 +328,7 @@
                                             <td>@(step.DFX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.NextX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.Error?.ToString("E2") ?? "-")</td>
-                                            <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
+                                            <td>@(step.Iteration == 1 ? "N/A" : step.RelativeError?.ToString("E2") ?? "-")</td>
                                             <td>@(step.Residual?.ToString("E2") ?? "-")</td>
                                             break;
                                         case "fixed-point":
