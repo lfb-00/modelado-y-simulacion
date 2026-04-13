@@ -22,7 +22,9 @@ public class FunctionParser
     /// </summary>
     public double Evaluate(double x)
     {
-        _text = _expression.Replace(" ", string.Empty).ToLowerInvariant();
+        _text = _expression.Replace(" ", string.Empty)
+                           .Replace("**", "^")
+                           .ToLowerInvariant();
         _pos = 0;
         _xValue = x;
         double result = ParseExpression();
