@@ -114,6 +114,16 @@
                     </div>
                 </div>
             </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Convergencia del estimador</h5>
+                    <p class="text-muted small mb-2">Estimacion parcial de la integral a medida que se acumulan muestras (primeras @Model.Samples.Count). La linea punteada es el resultado final.</p>
+                    <div style="position:relative;height:300px;">
+                        <canvas id="convergenceChart"></canvas>
+                    </div>
+                </div>
+            </div>
         }
 
         <div class="card mb-4">
@@ -178,6 +188,54 @@
         })();
 
         if (@Model.Dimensions === 1) {
+        (function () {
+            const convIndices = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Samples.Select(s => s.Index).ToList()));
+            const convEstimates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Samples.Select(s => s.PartialIntegralEstimate).ToList()));
+            const finalApprox = @Model.Approximation.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            const convData = convIndices.map((idx, i) => ({ x: idx, y: convEstimates[i] }));
+            const finalLineData = convIndices.length > 0
+                ? [{ x: convIndices[0], y: finalApprox }, { x: convIndices[convIndices.length - 1], y: finalApprox }]
+                : [];
+
+            new Chart(document.getElementById('convergenceChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Estimacion parcial',
+                            data: convData,
+                            borderColor: '#4fc3f7',
+                            backgroundColor: 'transparent',
+                            pointRadius: 0,
+                            borderWidth: 1.5,
+                            tension: 0
+                        },
+                        {
+                            label: 'Resultado final',
+                            data: finalLineData,
+                            borderColor: '#ffcc80',
+                            backgroundColor: 'transparent',
+                            pointRadius: 0,
+                            borderWidth: 1.5,
+                            borderDash: [6, 4],
+                            tension: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { type: 'linear', title: { display: true, text: 'Muestra i', font: { size: 13 } } },
+                        y: { title: { display: true, text: 'Integral estimada', font: { size: 13 } } }
+                    },
+                    plugins: { legend: { display: true } }
+                }
+            });
+        })();
+
         (function () {
             const xValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartXValues));
             const yValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartYValues));

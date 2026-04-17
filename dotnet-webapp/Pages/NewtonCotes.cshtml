@@ -94,6 +94,16 @@
 
 		<div class="card mb-4">
 			<div class="card-body">
+				<h5 class="card-title">Contribucion ponderada por nodo</h5>
+				<p class="text-muted small mb-2">Coeficiente &times; f(x<sub>i</sub>) para cada nodo. El area total es proporcional a la suma de estas barras.</p>
+				<div style="position:relative;height:300px;">
+					<canvas id="weightsChart"></canvas>
+				</div>
+			</div>
+		</div>
+
+		<div class="card mb-4">
+			<div class="card-body">
 				<h5 class="card-title">Tabla de nodos y pesos</h5>
 				<div class="table-responsive">
 					<table class="table table-striped table-bordered mb-0">
@@ -158,9 +168,19 @@
 			const yValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartYValues));
 			const nodeX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.NodeChartXValues));
 			const nodeY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.NodeChartYValues));
+			const nodeWeights = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Nodes.Select(n => n.WeightedValue).ToList()));
+			const nodeLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Nodes.Select(n => n.X.ToString("F4")).ToList()));
 
 			const curveData = xValues.map((x, i) => ({ x, y: yValues[i] }));
 			const nodeData = nodeX.map((x, i) => ({ x, y: nodeY[i] }));
+
+			// Vertical panel stems
+			const stemData = [];
+			for (let i = 0; i < nodeX.length; i++) {
+				stemData.push({ x: nodeX[i], y: 0 });
+				stemData.push({ x: nodeX[i], y: nodeY[i] });
+				stemData.push(null);
+			}
 
 			const zoomPlugin = {
 				zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' },
@@ -219,6 +239,38 @@
 						y: { position: 'left', title: { display: true, text: 'f(x)', font: { size: 14 } }, grid: axisGridConfig, ticks: { padding: 10, autoSkip: true } }
 					},
 					plugins: { zoom: zoomPlugin }
+				}
+			});
+		})();
+
+		(function () {
+			const nodeWeights2 = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Nodes.Select(n => n.WeightedValue).ToList()));
+			const nodeLabels2 = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Nodes.Select(n => n.X.ToString("F4")).ToList()));
+
+			const barColors = nodeWeights2.map(v => v >= 0 ? 'rgba(79, 195, 247, 0.75)' : 'rgba(239, 83, 80, 0.75)');
+			const borderColors = nodeWeights2.map(v => v >= 0 ? '#4fc3f7' : '#ef5350');
+
+			new Chart(document.getElementById('weightsChart').getContext('2d'), {
+				type: 'bar',
+				data: {
+					labels: nodeLabels2,
+					datasets: [{
+						label: 'Coef. × f(xᵢ)',
+						data: nodeWeights2,
+						backgroundColor: barColors,
+						borderColor: borderColors,
+						borderWidth: 1
+					}]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					animation: false,
+					scales: {
+						x: { title: { display: true, text: 'xᵢ', font: { size: 13 } }, ticks: { maxRotation: 45 } },
+						y: { title: { display: true, text: 'Coef. × f(xᵢ)', font: { size: 13 } } }
+					},
+					plugins: { legend: { display: false } }
 				}
 			});
 		})();
