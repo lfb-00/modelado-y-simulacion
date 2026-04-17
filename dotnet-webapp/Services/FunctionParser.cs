@@ -11,6 +11,8 @@ public class FunctionParser
     private int _pos;
     private string _text = string.Empty;
     private double _xValue;
+    private double _yValue;
+    private double _zValue;
 
     public FunctionParser(string expression)
     {
@@ -22,11 +24,21 @@ public class FunctionParser
     /// </summary>
     public double Evaluate(double x)
     {
+        return Evaluate(x, 0, 0);
+    }
+
+    /// <summary>
+    /// Evalúa la expresión para valores dados de x, y, z
+    /// </summary>
+    public double Evaluate(double x, double y, double z)
+    {
         _text = _expression.Replace(" ", string.Empty)
                            .Replace("**", "^")
                            .ToLowerInvariant();
         _pos = 0;
         _xValue = x;
+        _yValue = y;
+        _zValue = z;
         double result = ParseExpression();
         SkipWhitespace();
         if (_pos < _text.Length)
@@ -166,6 +178,16 @@ public class FunctionParser
             if (name == "x")
             {
                 return _xValue;
+            }
+
+            if (name == "y")
+            {
+                return _yValue;
+            }
+
+            if (name == "z")
+            {
+                return _zValue;
             }
 
             return EvaluateConstant(name);

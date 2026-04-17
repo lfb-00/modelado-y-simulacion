@@ -20,15 +20,39 @@
                     <div class="col-md-8">
                         <label class="form-label" for="Function">f(x)</label>
                         <input class="form-control" id="Function" name="Function" value="@Model.Function" required />
-                        <div class="form-text">Soporta expresiones como <code>sin(x)</code>, <code>exp(x)</code>, <code>x^2 + 1</code>.</div>
+                        <div class="form-text">Soporta expresiones como <code>sin(x)</code>, <code>x*y + z^2</code>, <code>exp(-(x^2+y^2))</code>.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="Dimensions">Dimension</label>
+                        <select class="form-select" id="Dimensions" name="Dimensions">
+                            <option value="1" selected="@(Model.Dimensions == 1)">1D (integral simple)</option>
+                            <option value="2" selected="@(Model.Dimensions == 2)">2D (integral doble)</option>
+                            <option value="3" selected="@(Model.Dimensions == 3)">3D (integral triple)</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label" for="A">a</label>
+                        <label class="form-label" for="A">ax</label>
                         <input class="form-control" id="A" name="A" value="@Model.A" required />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label" for="B">b</label>
+                        <label class="form-label" for="B">bx</label>
                         <input class="form-control" id="B" name="B" value="@Model.B" required />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="AY">ay</label>
+                        <input class="form-control" id="AY" name="AY" value="@Model.AY" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="BY">by</label>
+                        <input class="form-control" id="BY" name="BY" value="@Model.BY" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="AZ">az</label>
+                        <input class="form-control" id="AZ" name="AZ" value="@Model.AZ" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="BZ">bz</label>
+                        <input class="form-control" id="BZ" name="BZ" value="@Model.BZ" />
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="SamplesCount">Muestras (N)</label>
@@ -69,23 +93,28 @@
         <div class="card mb-4">
             <div class="card-body">
                 <h5 class="card-title">Resumen</h5>
+                <div><strong>Dimension:</strong> @Model.Dimensions D</div>
+                <div><strong>Volumen del dominio:</strong> @Model.DomainVolume.ToString("0.0000000000")</div>
                 <div><strong>Integral aproximada:</strong> @Model.Approximation.ToString("0.0000000000")</div>
                 <div><strong>Media muestral E[f(X)]:</strong> @Model.MeanValue.ToString("0.0000000000")</div>
                 <div><strong>Desviacion estandar muestral de f(X):</strong> @Model.StandardDeviation.ToString("0.0000000000")</div>
                 <div><strong>Error estandar estimado:</strong> @Model.StandardError.ToString("0.0000000000")</div>
-                <div><strong>IC 95%:</strong> [@Model.Confidence95Lower.ToString("0.0000000000"),&nbsp;@Model.Confidence95Upper.ToString("0.0000000000")]</div>
+                <div><strong>IC 95%:</strong> [@Model.Confidence95Lower.ToString("0.0000000000"),&nbsp;@Model.Confidence95Upper.ToString("0.0000000000")]&nbsp;<span class="text-muted small">(z&#8322; = @Model.ZCritical95.ToString("0.0000000000"))</span></div>
                 <div><strong>Semilla usada:</strong> @Model.EffectiveSeed</div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Funcion y muestras aleatorias</h5>
-                <div style="position:relative;height:420px;">
-                    <canvas id="monteCarloChart"></canvas>
+        @if (Model.Dimensions == 1)
+        {
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Funcion y puntos dentro/fuera del area</h5>
+                    <div style="position:relative;height:420px;">
+                        <canvas id="monteCarloChart"></canvas>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
 
         <div class="card mb-4">
             <div class="card-body">
@@ -96,6 +125,14 @@
                             <tr>
                                 <th>i</th>
                                 <th>x_i</th>
+                                @if (Model.Dimensions >= 2)
+                                {
+                                    <th>y_i</th>
+                                }
+                                @if (Model.Dimensions == 3)
+                                {
+                                    <th>z_i</th>
+                                }
                                 <th>f(x_i)</th>
                                 <th>Media parcial</th>
                                 <th>Integral parcial</th>
@@ -107,6 +144,14 @@
                                 <tr>
                                     <td>@sample.Index</td>
                                     <td>@sample.X.ToString("F8")</td>
+                                    @if (Model.Dimensions >= 2)
+                                    {
+                                        <td>@(sample.Y?.ToString("F8") ?? "-")</td>
+                                    }
+                                    @if (Model.Dimensions == 3)
+                                    {
+                                        <td>@(sample.Z?.ToString("F8") ?? "-")</td>
+                                    }
                                     <td>@sample.FX.ToString("F8")</td>
                                     <td>@sample.PartialMean.ToString("F8")</td>
                                     <td>@sample.PartialIntegralEstimate.ToString("F8")</td>
@@ -132,6 +177,7 @@
             }
         })();
 
+        if (@Model.Dimensions === 1) {
         (function () {
             const xValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartXValues));
             const yValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartYValues));
@@ -204,5 +250,6 @@
                 }
             });
         })();
+        }
     </script>
 }
