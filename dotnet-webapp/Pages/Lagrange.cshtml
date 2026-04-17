@@ -1,0 +1,393 @@
+﻿@page
+@model LagrangeModel
+@{
+	ViewData["Title"] = "Interpolación de Lagrange";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.1.0/dist/chartjs-plugin-zoom.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+<div class="container mt-4">
+	<h1 class="mb-3">Interpolación polinomial de Lagrange</h1>
+	<p>Ingresá n puntos en 2D. La función interpolante se calcula como salida y se renderiza en LaTeX.</p>
+
+	<form method="post" class="mb-4" id="lagrangeForm">
+		<div class="card mb-3">
+			<div class="card-body">
+				<div class="d-flex justify-content-between align-items-center mb-2">
+					<h5 class="card-title mb-0">Puntos (x, y)</h5>
+					<div class="d-flex gap-2">
+						<button type="button" class="btn btn-outline-secondary btn-sm" id="addPointBtn">Agregar punto</button>
+						<button type="button" class="btn btn-outline-danger btn-sm" id="removePointBtn">Eliminar último</button>
+					</div>
+				</div>
+				<div class="table-responsive">
+					<table class="table table-striped table-bordered mb-0" id="pointsTable">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>x</th>
+								<th>y</th>
+							</tr>
+						</thead>
+						<tbody>
+							@for (int i = 0; i < Model.Points.Count; i++)
+							{
+								<tr>
+									<td>@(i + 1)</td>
+									<td><input name="Points[@i].X" value="@Model.Points[i].X" class="form-control" step="any" required /></td>
+									<td><input name="Points[@i].Y" value="@Model.Points[i].Y" class="form-control" step="any" required /></td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<div class="form-text mt-2">Mínimo 3 puntos, máximo 30.</div>
+			</div>
+		</div>
+
+		<button type="submit" class="btn btn-primary">Calcular</button>
+	</form>
+
+	@if (!string.IsNullOrEmpty(Model.ResultMessage))
+	{
+		<div class="alert @(Model.HasResult ? "alert-success" : "alert-danger")">
+			@Model.ResultMessage
+			@if (Model.HasResult)
+			{
+				<div class="mt-2">
+					<div><strong>Error global máximo:</strong> @Model.GlobalError?.ToString("E6")</div>
+				</div>
+			}
+		</div>
+	}
+
+	@if (Model.HasResult && !string.IsNullOrWhiteSpace(Model.InterpolatingFunctionLatex))
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Función interpolante (salida)</h5>
+				<div class="mb-2"><strong>Forma de Lagrange</strong></div>
+				<div id="functionLatex" class="border rounded p-2 mb-3"></div>
+				<div class="mb-2"><strong>Forma simplificada</strong></div>
+				<div id="functionLatexSimplified" class="border rounded p-2 mb-2"></div>
+				<div class="form-text" id="functionSimplifiedText"></div>
+			</div>
+		</div>
+	}
+
+	@if (Model.HasResult && Model.PolynomialChartX?.Count > 0)
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">f(x) por tramos, polinomio interpolante P(x) y puntos ingresados</h5>
+				<div style="position:relative;height:420px;">
+					<canvas id="interpolationChart"></canvas>
+				</div>
+			</div>
+		</div>
+
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Error global |f(x) - P(x)|</h5>
+				<div style="position:relative;height:320px;">
+					<canvas id="errorChart"></canvas>
+				</div>
+			</div>
+		</div>
+
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Función de salida P(x) en rango fijo [-20, 20]</h5>
+				<div style="position:relative;height:360px;">
+					<canvas id="outputOverviewChart"></canvas>
+				</div>
+			</div>
+		</div>
+	}
+
+	@if (Model.Nodes?.Count > 0)
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Tabla de nodos y error local</h5>
+				<div class="table-responsive">
+					<table class="table table-striped table-bordered">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>x_i</th>
+								<th>y_i</th>
+								<th>P(x_i)</th>
+								<th>Error local</th>
+							</tr>
+						</thead>
+						<tbody>
+							@for (int i = 0; i < Model.Nodes.Count; i++)
+							{
+								var node = Model.Nodes[i];
+								<tr>
+									<td>@(i + 1)</td>
+									<td>@node.X.ToString("F8")</td>
+									<td>@node.Y.ToString("F8")</td>
+									<td>@node.PX.ToString("F8")</td>
+									<td>@node.LocalError.ToString("E4")</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	}
+</div>
+
+@if (Model.HasResult && Model.PolynomialChartX?.Count > 0)
+{
+	<script>
+		(function () {
+			const expression = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.InterpolatingFunctionLatex));
+			const simplifiedLatex = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.InterpolatingFunctionSimplifiedLatex));
+			const simplifiedText = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.InterpolatingFunctionSimplifiedText));
+			const latexContainer = document.getElementById('functionLatex');
+			const simplifiedContainer = document.getElementById('functionLatexSimplified');
+			const simplifiedTextContainer = document.getElementById('functionSimplifiedText');
+			if (latexContainer) {
+				try {
+					katex.render(expression, latexContainer, { throwOnError: false });
+				} catch {
+					latexContainer.textContent = expression;
+				}
+			}
+
+			if (simplifiedContainer) {
+				try {
+					katex.render(simplifiedLatex, simplifiedContainer, { throwOnError: false });
+				} catch {
+					simplifiedContainer.textContent = simplifiedLatex;
+				}
+			}
+
+			if (simplifiedTextContainer) {
+				simplifiedTextContainer.textContent = simplifiedText;
+			}
+		})();
+
+		(function () {
+			const addBtn = document.getElementById('addPointBtn');
+			const removeBtn = document.getElementById('removePointBtn');
+			const tbody = document.querySelector('#pointsTable tbody');
+
+			if (!addBtn || !removeBtn || !tbody) {
+				return;
+			}
+
+			const updateButtons = () => {
+				const currentRows = tbody.querySelectorAll('tr').length;
+				removeBtn.disabled = currentRows <= 3;
+				addBtn.disabled = currentRows >= 30;
+			};
+
+			addBtn.addEventListener('click', () => {
+				const currentRows = tbody.querySelectorAll('tr').length;
+				if (currentRows >= 30) {
+					return;
+				}
+
+				const row = document.createElement('tr');
+				row.innerHTML = `
+					<td>${currentRows + 1}</td>
+					<td><input name="Points[${currentRows}].X" class="form-control" step="any" required /></td>
+					<td><input name="Points[${currentRows}].Y" class="form-control" step="any" required /></td>
+				`;
+				tbody.appendChild(row);
+				updateButtons();
+			});
+
+			removeBtn.addEventListener('click', () => {
+				const currentRows = tbody.querySelectorAll('tr').length;
+				if (currentRows <= 3) {
+					return;
+				}
+				tbody.removeChild(tbody.lastElementChild);
+				updateButtons();
+			});
+
+			updateButtons();
+		})();
+
+		(function () {
+			const pointsX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PointsChartX));
+			const pointsY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PointsChartY));
+			const fX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FunctionChartX));
+			const fY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FunctionChartY));
+			const errX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FunctionErrorChartX));
+			const errY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FunctionErrorChartY));
+			const pX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PolynomialChartX));
+			const pY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PolynomialChartY));
+			const overviewX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OutputOverviewChartX));
+			const overviewY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OutputOverviewChartY));
+			const errorFP = errX.map((x, i) => ({ x, y: errY[i] }));
+
+			const zoomPlugin = {
+				zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' },
+				pan: { enabled: true, modifierKey: 'ctrl', mode: 'xy' }
+			};
+
+			const axisGridConfig = {
+				drawBorder: true,
+				color: function(context) {
+					return context.tick.value === 0 ? 'rgba(200, 200, 200, 0.8)' : 'rgba(100, 100, 100, 0.2)';
+				},
+				lineWidth: function(context) {
+					return context.tick.value === 0 ? 2.5 : 1;
+				}
+			};
+
+			const chart1 = new Chart(document.getElementById('interpolationChart').getContext('2d'), {
+				type: 'line',
+				data: {
+					datasets: [
+						{
+							label: 'f(x) por tramos (desde puntos)',
+							data: fX.map((x, i) => ({ x, y: fY[i] })),
+							borderColor: '#4fc3f7',
+							pointRadius: 2,
+							borderWidth: 2,
+							tension: 0
+						},
+						{
+							label: 'P(x)',
+							data: pX.map((x, i) => ({ x, y: pY[i] })),
+							borderColor: '#ff8a65',
+							pointRadius: 0,
+							borderWidth: 2,
+							borderDash: [5, 4],
+							tension: 0
+						},
+						{
+							label: 'Puntos (x_i, y_i)',
+							data: pointsX.map((x, i) => ({ x, y: pointsY[i] })),
+							type: 'scatter',
+							borderColor: '#81c784',
+							backgroundColor: '#81c784',
+							pointRadius: 4,
+							showLine: false
+						}
+					]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					animation: false,
+					scales: {
+						x: { type: 'linear', position: 'bottom', title: { display: true, text: 'x', font: { size: 14 } }, grid: axisGridConfig, ticks: { padding: 10, autoSkip: true, maxRotation: 0 } },
+						y: { position: 'left', title: { display: true, text: 'y', font: { size: 14 } }, grid: axisGridConfig, ticks: { padding: 10, autoSkip: true } }
+					},
+					plugins: { zoom: zoomPlugin }
+				}
+			});
+
+			const chart2 = new Chart(document.getElementById('errorChart').getContext('2d'), {
+				type: 'line',
+				data: {
+					datasets: [{
+						label: '|f(x) - P(x)|',
+						data: errorFP,
+						borderColor: '#ef9a9a',
+						pointRadius: 0,
+						borderWidth: 1.5,
+						tension: 0
+					}]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					animation: false,
+					scales: {
+						x: { type: 'linear', position: 'bottom', title: { display: true, text: 'x', font: { size: 14 } }, grid: axisGridConfig, ticks: { padding: 10, autoSkip: true, maxRotation: 0 } },
+						y: { position: 'left', title: { display: true, text: '|f(x) - P(x)|', font: { size: 14 } }, grid: axisGridConfig, ticks: { padding: 10, autoSkip: true } }
+					},
+					plugins: { zoom: zoomPlugin }
+				}
+			});
+
+			const outputOverview = document.getElementById('outputOverviewChart');
+			if (outputOverview) {
+				new Chart(outputOverview.getContext('2d'), {
+					type: 'line',
+					data: {
+						datasets: [{
+							label: 'P(x)',
+							data: overviewX.map((x, i) => ({ x, y: overviewY[i] })),
+							borderColor: '#ffd54f',
+							pointRadius: 0,
+							borderWidth: 2,
+							tension: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						animation: false,
+						scales: {
+							x: { type: 'linear', min: -20, max: 20, position: 'bottom', title: { display: true, text: 'x', font: { size: 14 } }, grid: axisGridConfig, ticks: { padding: 10, autoSkip: true, maxRotation: 0 } },
+							y: { min: -20, max: 20, position: 'left', title: { display: true, text: 'P(x)', font: { size: 14 } }, grid: axisGridConfig, ticks: { padding: 10, autoSkip: true } }
+						},
+						plugins: { zoom: zoomPlugin }
+					}
+				});
+			}
+		})();
+	</script>
+}
+
+@if (!Model.HasResult)
+{
+	<script>
+		(function () {
+			const addBtn = document.getElementById('addPointBtn');
+			const removeBtn = document.getElementById('removePointBtn');
+			const tbody = document.querySelector('#pointsTable tbody');
+
+			if (!addBtn || !removeBtn || !tbody) {
+				return;
+			}
+
+			const updateButtons = () => {
+				const currentRows = tbody.querySelectorAll('tr').length;
+				removeBtn.disabled = currentRows <= 3;
+				addBtn.disabled = currentRows >= 30;
+			};
+
+			addBtn.addEventListener('click', () => {
+				const currentRows = tbody.querySelectorAll('tr').length;
+				if (currentRows >= 30) {
+					return;
+				}
+
+				const row = document.createElement('tr');
+				row.innerHTML = `
+					<td>${currentRows + 1}</td>
+					<td><input name="Points[${currentRows}].X" class="form-control" step="any" required /></td>
+					<td><input name="Points[${currentRows}].Y" class="form-control" step="any" required /></td>
+				`;
+				tbody.appendChild(row);
+				updateButtons();
+			});
+
+			removeBtn.addEventListener('click', () => {
+				const currentRows = tbody.querySelectorAll('tr').length;
+				if (currentRows <= 3) {
+					return;
+				}
+				tbody.removeChild(tbody.lastElementChild);
+				updateButtons();
+			});
+
+			updateButtons();
+		})();
+	</script>
+}
