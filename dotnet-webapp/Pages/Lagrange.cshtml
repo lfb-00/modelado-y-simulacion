@@ -69,6 +69,10 @@
 		<div class="card mb-4">
 			<div class="card-body">
 				<h5 class="card-title">Función interpolante (salida)</h5>
+				<div class="mb-2"><strong>Fórmula general de Lagrange</strong></div>
+				<div id="lagrangeGeneralLatex" class="border rounded p-2 mb-3"></div>
+				<div class="mb-2"><strong>Polinomios base</strong></div>
+				<div id="lagrangeBasesContainer" class="mb-3"></div>
 				<div class="mb-2"><strong>Forma de Lagrange</strong></div>
 				<div id="functionLatex" class="border rounded p-2 mb-3"></div>
 				<div class="mb-2"><strong>Forma simplificada</strong></div>
@@ -148,12 +152,38 @@
 {
 	<script>
 		(function () {
+			const lagrangeGeneral = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LagrangeGeneralFormulaLatex));
+			const basePolynomials = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BasePolynomialsLatex));
 			const expression = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.InterpolatingFunctionLatex));
 			const simplifiedLatex = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.InterpolatingFunctionSimplifiedLatex));
 			const simplifiedText = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.InterpolatingFunctionSimplifiedText));
+			const generalContainer = document.getElementById('lagrangeGeneralLatex');
+			const basesContainer = document.getElementById('lagrangeBasesContainer');
 			const latexContainer = document.getElementById('functionLatex');
 			const simplifiedContainer = document.getElementById('functionLatexSimplified');
 			const simplifiedTextContainer = document.getElementById('functionSimplifiedText');
+			if (generalContainer) {
+				try {
+					katex.render(lagrangeGeneral, generalContainer, { throwOnError: false });
+				} catch {
+					generalContainer.textContent = lagrangeGeneral;
+				}
+			}
+
+			if (basesContainer) {
+				basesContainer.innerHTML = '';
+				for (const latex of basePolynomials) {
+					const row = document.createElement('div');
+					row.className = 'border rounded p-2 mb-2';
+					try {
+						katex.render(latex, row, { throwOnError: false });
+					} catch {
+						row.textContent = latex;
+					}
+					basesContainer.appendChild(row);
+				}
+			}
+
 			if (latexContainer) {
 				try {
 					katex.render(expression, latexContainer, { throwOnError: false });

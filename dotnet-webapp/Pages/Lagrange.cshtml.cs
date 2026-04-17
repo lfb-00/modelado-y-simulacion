@@ -32,6 +32,8 @@ public class LagrangeModel : PageModel
     public List<double> OutputOverviewChartX { get; set; } = new();
     public List<double> OutputOverviewChartY { get; set; } = new();
     public string InterpolatingFunctionLatex { get; set; } = string.Empty;
+    public string LagrangeGeneralFormulaLatex { get; set; } = string.Empty;
+    public List<string> BasePolynomialsLatex { get; set; } = new();
     public string InterpolatingFunctionSimplifiedLatex { get; set; } = string.Empty;
     public string InterpolatingFunctionSimplifiedText { get; set; } = string.Empty;
     public double? GlobalError { get; set; }
@@ -65,6 +67,7 @@ public class LagrangeModel : PageModel
             PolynomialChartY = service.PolynomialChartY;
 
             BuildOutputFunctionSeriesAndGlobalError();
+            BuildLagrangeFormulaDetails();
             BuildInterpolatingLatex();
             BuildSimplifiedOutputFunction();
             BuildOutputOverviewSeries();
@@ -231,6 +234,36 @@ public class LagrangeModel : PageModel
         }
 
         InterpolatingFunctionLatex = "P(x) = " + string.Join(" + ", terms);
+    }
+
+    private void BuildLagrangeFormulaDetails()
+    {
+        LagrangeGeneralFormulaLatex = "P(x)=\\sum_{i=0}^{n} y_i L_i(x),\\qquad L_i(x)=\\prod_{j=0,\\,j\\ne i}^{n}\\frac{x-x_j}{x_i-x_j}";
+        BasePolynomialsLatex.Clear();
+
+        if (Points.Count == 0)
+        {
+            return;
+        }
+
+        string Format(double v) => v.ToString("0.######", CultureInfo.InvariantCulture);
+
+        for (int i = 0; i < Points.Count; i++)
+        {
+            var factors = new List<string>();
+            for (int j = 0; j < Points.Count; j++)
+            {
+                if (i == j)
+                {
+                    continue;
+                }
+
+                factors.Add($"\\frac{{x-({Format(Points[j].X)})}}{{({Format(Points[i].X)})-({Format(Points[j].X)})}}");
+            }
+
+            string factorProduct = factors.Count > 0 ? string.Join("", factors) : "1";
+            BasePolynomialsLatex.Add($"L_{{{i}}}(x) = {factorProduct}");
+        }
     }
 
     private void BuildSimplifiedOutputFunction()
