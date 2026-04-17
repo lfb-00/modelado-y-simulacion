@@ -301,29 +301,73 @@ public class LagrangeModel : PageModel
     private static double[] ComputeMonomialCoefficients(IReadOnlyList<InputPoint> points)
     {
         int n = points.Count;
-        var coefficients = new double[n];
+        var system = new double[n, n + 1];
 
         for (int i = 0; i < n; i++)
         {
-            double[] basis = [1.0];
-            double denominator = 1.0;
-
+            double xPower = 1.0;
             for (int j = 0; j < n; j++)
             {
-                if (i == j)
+                system[i, j] = xPower;
+                xPower *= points[i].X;
+            }
+
+            system[i, n] = points[i].Y;
+        }
+
+        // Eliminacion gaussiana con pivoteo parcial para mejorar estabilidad numerica.
+        for (int col = 0; col < n; col++)
+        {
+            int pivotRow = col;
+            double pivotAbs = Math.Abs(system[col, col]);
+            for (int row = col + 1; row < n; row++)
+            {
+                double candidate = Math.Abs(system[row, col]);
+                if (candidate > pivotAbs)
+                {
+                    pivotAbs = candidate;
+                    pivotRow = row;
+                }
+            }
+
+            if (pivotAbs < 1e-14)
+            {
+                throw new ArgumentException("No se pudo construir la forma simplificada (matriz singular o mal condicionada).");
+            }
+
+            if (pivotRow != col)
+            {
+                for (int k = 0; k <= n; k++)
+                {
+                    (system[col, k], system[pivotRow, k]) = (system[pivotRow, k], system[col, k]);
+                }
+            }
+
+            for (int row = col + 1; row < n; row++)
+            {
+                double factor = system[row, col] / system[col, col];
+                if (Math.Abs(factor) < 1e-18)
                 {
                     continue;
                 }
 
-                denominator *= (points[i].X - points[j].X);
-                basis = MultiplyByLinearFactor(basis, -points[j].X, 1.0);
+                for (int k = col; k <= n; k++)
+                {
+                    system[row, k] -= factor * system[col, k];
+                }
+            }
+        }
+
+        var coefficients = new double[n];
+        for (int row = n - 1; row >= 0; row--)
+        {
+            double rhs = system[row, n];
+            for (int col = row + 1; col < n; col++)
+            {
+                rhs -= system[row, col] * coefficients[col];
             }
 
-            double scale = points[i].Y / denominator;
-            for (int k = 0; k < basis.Length; k++)
-            {
-                coefficients[k] += scale * basis[k];
-            }
+            coefficients[row] = rhs / system[row, row];
         }
 
         for (int i = 0; i < coefficients.Length; i++)
@@ -336,19 +380,6 @@ public class LagrangeModel : PageModel
 
         return coefficients;
     }
-
-    private static double[] MultiplyByLinearFactor(double[] poly, double constantTerm, double xTerm)
-    {
-        var result = new double[poly.Length + 1];
-        for (int i = 0; i < poly.Length; i++)
-        {
-            result[i] += poly[i] * constantTerm;
-            result[i + 1] += poly[i] * xTerm;
-        }
-
-        return result;
-    }
-
     private static double EvaluateMonomialPolynomial(double[] coefficients, double x)
     {
         double value = 0;
