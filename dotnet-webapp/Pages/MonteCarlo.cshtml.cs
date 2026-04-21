@@ -45,6 +45,12 @@ public class MonteCarloModel : PageModel
     public int SamplesCount { get; set; } = 5000;
 
     [BindProperty]
+    public double? ConfidenceLevel { get; set; } = 95;
+
+    [BindProperty]
+    public double? ZCriticalInput { get; set; }
+
+    [BindProperty]
     public int? Seed { get; set; }
 
     public string ResultMessage { get; set; } = string.Empty;
@@ -56,9 +62,9 @@ public class MonteCarloModel : PageModel
     public double StandardDeviation { get; set; }
     public double StandardError { get; set; }
     public string FunctionLatex { get; set; } = string.Empty;
-    public double ZCritical95 { get; set; }
-    public double Confidence95Lower { get; set; }
-    public double Confidence95Upper { get; set; }
+    public double ZCritical { get; set; }
+    public double ConfidenceLower { get; set; }
+    public double ConfidenceUpper { get; set; }
     public int EffectiveSeed { get; set; }
     public double DomainVolume { get; set; }
 
@@ -93,16 +99,17 @@ public class MonteCarloModel : PageModel
         try
         {
             var service = new MonteCarloIntegrationService(_loggerFactory);
-            service.Compute(Function, Dimensions, A, B, AY, BY, AZ, BZ, SamplesCount, Seed);
+            service.Compute(Function, Dimensions, A, B, AY, BY, AZ, BZ, SamplesCount, Seed, ConfidenceLevel, ZCriticalInput);
 
             Approximation = service.Approximation;
             MeanValue = service.MeanValue;
             StandardDeviation = service.StandardDeviation;
             StandardError = service.StandardError;
             FunctionLatex = service.FunctionLatex;
-            ZCritical95 = service.ZCritical95;
-            Confidence95Lower = service.Confidence95Lower;
-            Confidence95Upper = service.Confidence95Upper;
+            ZCritical = service.ZCritical;
+            ConfidenceLevel = service.ConfidenceLevel;
+            ConfidenceLower = service.ConfidenceLower;
+            ConfidenceUpper = service.ConfidenceUpper;
             EffectiveSeed = service.EffectiveSeed;
             DomainVolume = service.DomainVolume;
             ChartXValues = service.ChartXValues;
@@ -189,6 +196,16 @@ public class MonteCarloModel : PageModel
             parsedSeed = seedValue;
         }
 
+        if (!TryParseFlexibleDouble("ConfidenceLevel", out var confidenceLevel))
+        {
+            confidenceLevel = double.NaN;
+        }
+
+        if (!TryParseFlexibleDouble("ZCriticalInput", out var zCriticalInput))
+        {
+            zCriticalInput = double.NaN;
+        }
+
         Dimensions = dimensions;
         A = a;
         B = b;
@@ -197,6 +214,8 @@ public class MonteCarloModel : PageModel
         AZ = az;
         BZ = bz;
         SamplesCount = sampleCount;
+        ConfidenceLevel = double.IsNaN(confidenceLevel) ? null : confidenceLevel;
+        ZCriticalInput = double.IsNaN(zCriticalInput) ? null : zCriticalInput;
         Seed = parsedSeed;
         return true;
     }
@@ -216,8 +235,23 @@ public class MonteCarloModel : PageModel
                                          NumberStyles.AllowDecimalPoint |
                                          NumberStyles.AllowExponent;
 
-        return double.TryParse(raw, strictFloat, CultureInfo.InvariantCulture, out value) ||
-               double.TryParse(raw, strictFloat, CultureInfo.CurrentCulture, out value);
+        if (double.TryParse(raw, strictFloat, CultureInfo.InvariantCulture, out value) ||
+            double.TryParse(raw, strictFloat, CultureInfo.CurrentCulture, out value))
+        {
+            return true;
+        }
+
+        // Allow constant expressions like pi, 2*pi, pi/2, etc.
+        try
+        {
+            var parser = new FunctionParser(raw);
+            value = parser.Evaluate(0);
+            return double.IsFinite(value);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private bool ValidateInput()
@@ -255,6 +289,24 @@ public class MonteCarloModel : PageModel
         if (SamplesCount <= 1)
         {
             ResultMessage = "La cantidad de muestras debe ser mayor que 1.";
+            return false;
+        }
+
+        if (!ConfidenceLevel.HasValue && !ZCriticalInput.HasValue)
+        {
+            ResultMessage = "Ingresa el nivel de confianza o el valor z critico.";
+            return false;
+        }
+
+        if (ConfidenceLevel.HasValue && (ConfidenceLevel <= 0 || ConfidenceLevel >= 100))
+        {
+            ResultMessage = "El nivel de confianza debe estar entre 0 y 100 (exclusivo).";
+            return false;
+        }
+
+        if (ZCriticalInput.HasValue && ZCriticalInput <= 0)
+        {
+            ResultMessage = "El valor z critico debe ser positivo.";
             return false;
         }
 

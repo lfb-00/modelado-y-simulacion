@@ -108,7 +108,18 @@ public class FunctionParser
 
     private double ParseFactor()
     {
-        double baseValue = ParseUnary();
+        // Signos unarios con menor precedencia que la potencia:
+        // -x^2 se interpreta como -(x^2), no como (-x)^2.
+        if (Match('+'))
+        {
+            return ParseFactor();
+        }
+        if (Match('-'))
+        {
+            return -ParseFactor();
+        }
+
+        double baseValue = ParsePrimary();
 
         // Exponenciación asociativa a derecha: 2^x^2 = 2^(x^2)
         if (Match('^'))
@@ -122,15 +133,8 @@ public class FunctionParser
 
     private double ParseUnary()
     {
-        if (Match('+'))
-        {
-            return ParseUnary();
-        }
-        if (Match('-'))
-        {
-            return -ParseUnary();
-        }
-        return ParsePrimary();
+        // Mantiene compatibilidad con llamadas existentes.
+        return ParseFactor();
     }
 
     private double ParsePrimary()
@@ -223,6 +227,12 @@ public class FunctionParser
             "sin" => Math.Sin(arg),
             "cos" => Math.Cos(arg),
             "tan" => Math.Tan(arg),
+            "arcsin" => Math.Asin(arg),
+            "arccos" => Math.Acos(arg),
+            "arctan" => Math.Atan(arg),
+            "sinh" => Math.Sinh(arg),
+            "cosh" => Math.Cosh(arg),
+            "tanh" => Math.Tanh(arg),
             "exp" => Math.Exp(arg),
             "log" => Math.Log(arg),
             "ln" => Math.Log(arg),

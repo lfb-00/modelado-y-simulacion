@@ -13,9 +13,10 @@ public class MonteCarloIntegrationService
     public double StandardDeviation { get; private set; }
     public double StandardError { get; private set; }
     public string FunctionLatex { get; private set; } = string.Empty;
-    public double ZCritical95 { get; private set; }
-    public double Confidence95Lower { get; private set; }
-    public double Confidence95Upper { get; private set; }
+    public double ConfidenceLevel { get; private set; }
+    public double ZCritical { get; private set; }
+    public double ConfidenceLower { get; private set; }
+    public double ConfidenceUpper { get; private set; }
     public int EffectiveSeed { get; private set; }
 
     public List<double> ChartXValues { get; private set; } = new();
@@ -41,7 +42,9 @@ public class MonteCarloIntegrationService
         double? az,
         double? bz,
         int sampleCount,
-        int? seed)
+        int? seed,
+        double? confidenceLevel = null,
+        double? zCritical = null)
     {
         if (string.IsNullOrWhiteSpace(function))
         {
@@ -193,10 +196,22 @@ public class MonteCarloIntegrationService
 
         StandardDeviation = Math.Sqrt(variance);
         StandardError = DomainVolume * Math.Sqrt(variance / sampleCount);
-        ZCritical95 = InverseNormalCdf(0.975);
-        double margin95 = ZCritical95 * StandardError;
-        Confidence95Lower = Approximation - margin95;
-        Confidence95Upper = Approximation + margin95;
+
+        if (zCritical.HasValue)
+        {
+            ZCritical = zCritical.Value;
+            ConfidenceLevel = (2 * NormalCdf(ZCritical) - 1) * 100;
+        }
+        else
+        {
+            ConfidenceLevel = confidenceLevel ?? 95;
+            double alpha = (100 - ConfidenceLevel) / 100.0;
+            ZCritical = InverseNormalCdf(1 - alpha / 2);
+        }
+
+        double margin = ZCritical * StandardError;
+        ConfidenceLower = Approximation - margin;
+        ConfidenceUpper = Approximation + margin;
 
         FunctionLatex = ToLatex(function);
 
@@ -260,6 +275,25 @@ public class MonteCarloIntegrationService
         return x;
     }
 
+    // Standard normal CDF using the Abramowitz & Stegun approximation.
+    private static double NormalCdf(double x)
+    {
+        const double a1 = 0.254829592;
+        const double a2 = -0.284496736;
+        const double a3 = 1.421413741;
+        const double a4 = -1.453152027;
+        const double a5 = 1.061405429;
+        const double p = 0.3275911;
+
+        int sign = x < 0 ? -1 : 1;
+        x = Math.Abs(x) / Math.Sqrt(2);
+
+        double t = 1.0 / (1.0 + p * x);
+        double y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.Exp(-x * x);
+
+        return 0.5 * (1.0 + sign * y);
+    }
+
     private static string ToLatex(string expr)
     {
         string s = expr.Trim()
@@ -280,14 +314,10 @@ public class MonteCarloIntegrationService
             .Replace("pi", "\\pi")
             .Replace("*", "\\cdot ");
 
-        // Wrap exponent tokens: a^b  ->  a^{b}  (handles single char or parenthesised block)
+        // Wrap exponent tokens: a^b -> a^{b}, including signed terms like a^-x.
         s = System.Text.RegularExpressions.Regex.Replace(
             s,
-            @"\^([^{(\s])|(\()(.+?)(\))",
-            m => m.Groups[1].Success ? $"^{{{m.Groups[1].Value}}}" : m.Value);
-        s = System.Text.RegularExpressions.Regex.Replace(
-            s,
-            @"\^(\([^)]+\))",
+            @"\^(?!\{)([+-]?(?:\([^)]+\)|\\?[a-zA-Z]+|\d+(?:\.\d+)?))",
             m => $"^{{{m.Groups[1].Value}}}");
 
         return $"f(x) = {s}";

@@ -9,6 +9,47 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('Function');
+    const kb = document.getElementById('mathKeyboard');
+    if (!kb || !input) return;
+    kb.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-insert]');
+        if (!btn) return;
+        const val = btn.dataset.insert;
+        const start = input.selectionStart ?? input.value.length;
+        const end   = input.selectionEnd   ?? input.value.length;
+        if (val === '__backspace__') {
+            if (start === end && start > 0) {
+                input.value = input.value.slice(0, start - 1) + input.value.slice(end);
+                input.setSelectionRange(start - 1, start - 1);
+            } else {
+                input.value = input.value.slice(0, start) + input.value.slice(end);
+                input.setSelectionRange(start, start);
+            }
+        } else {
+            input.value = input.value.slice(0, start) + val + input.value.slice(end);
+            const cursor = start + val.length;
+            input.setSelectionRange(cursor, cursor);
+        }
+        input.focus();
+    });
+
+    // When user types in one confidence field, clear the other
+    const clField = document.getElementById('ConfidenceLevel');
+    const zField  = document.getElementById('ZCriticalInput');
+    if (clField && zField) {
+        clField.addEventListener('input', function () {
+            if (clField.value.trim() !== '') zField.value = '';
+        });
+        zField.addEventListener('input', function () {
+            if (zField.value.trim() !== '') clField.value = '';
+        });
+    }
+});
+</script>
+
 <div class="container mt-4">
     <h1 class="mb-3">Integracion numerica con Monte Carlo</h1>
     <p>Estima la integral definida muestreando puntos aleatorios uniformes en el intervalo [a, b].</p>
@@ -19,8 +60,29 @@
                 <div class="row g-3">
                     <div class="col-md-8">
                         <label class="form-label" for="Function">f(x)</label>
-                        <input class="form-control" id="Function" name="Function" value="@Model.Function" required />
-                        <div class="form-text">Soporta expresiones como <code>sin(x)</code>, <code>x*y + z^2</code>, <code>exp(-(x^2+y^2))</code>.</div>
+                        <input class="form-control" id="Function" name="Function" value="@Model.Function" required autocomplete="off" />
+                        <div class="form-text mb-2">Soporta expresiones como <code>sin(x)</code>, <code>x*y + z^2</code>, <code>exp(-(x^2+y^2))</code>.</div>
+                        <div id="mathKeyboard" class="d-flex flex-wrap gap-1">
+                            @{
+                                var keys = new[] {
+                                    ("x", "x"), ("y", "y"), ("z", "z"),
+                                    ("+", "+"), ("-", "-"), ("×", "*"), ("÷", "/"), ("^", "^"), ("(", "("), (")", ")"), (".", "."),
+                                    ("π", "pi"), ("e", "e"),
+                                    ("sin(", "sin("), ("cos(", "cos("), ("tan(", "tan("),
+                                    ("arcsin(", "arcsin("), ("arccos(", "arccos("), ("arctan(", "arctan("),
+                                    ("sinh(", "sinh("), ("cosh(", "cosh("), ("tanh(", "tanh("),
+                                    ("√(", "sqrt("), ("exp(", "exp("), ("ln(", "ln("), ("log(", "log("),
+                                    ("⌫", "__backspace__")
+                                };
+                            }
+                            @foreach (var (label, value) in keys)
+                            {
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary font-monospace"
+                                        data-insert="@value"
+                                        style="min-width:3rem;">@label</button>
+                            }
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="Dimensions">Dimension</label>
@@ -32,11 +94,14 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="A">ax</label>
-                        <input class="form-control" id="A" name="A" value="@Model.A" required />
+                        <input class="form-control" id="A" name="A" value="@Model.A" required placeholder="0" />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="B">bx</label>
-                        <input class="form-control" id="B" name="B" value="@Model.B" required />
+                        <input class="form-control" id="B" name="B" value="@Model.B" required placeholder="pi" />
+                    </div>
+                    <div class="col-12">
+                        <span class="form-text">Los limites aceptan expresiones como <code>pi</code>, <code>2*pi</code>, <code>pi/4</code>, <code>e</code>.</span>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="AY">ay</label>
@@ -59,10 +124,23 @@
                         <input class="form-control" id="SamplesCount" name="SamplesCount" value="@Model.SamplesCount" required />
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label" for="ConfidenceLevel">Nivel de confianza (%)</label>
+                        <input class="form-control" id="ConfidenceLevel" name="ConfidenceLevel"
+                               value="@(Model.ConfidenceLevel.HasValue ? Model.ConfidenceLevel.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty)"
+                               placeholder="95" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="ZCriticalInput">z critico</label>
+                        <input class="form-control" id="ZCriticalInput" name="ZCriticalInput"
+                               value="@(Model.ZCriticalInput.HasValue ? Model.ZCriticalInput.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty)"
+                               placeholder="1.96" />
+                        <span class="form-text">Completa uno; el otro se calcula.</span>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label" for="Seed">Semilla (opcional)</label>
                         <input class="form-control" id="Seed" name="Seed" value="@(Model.Seed.HasValue ? Model.Seed.Value.ToString() : string.Empty)" />
                     </div>
-                    <div class="col-md-6 d-flex align-items-end">
+                    <div class="col-md-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary w-100">Estimar integral</button>
                     </div>
                 </div>
@@ -99,7 +177,7 @@
                 <div><strong>Media muestral E[f(X)]:</strong> @Model.MeanValue.ToString("0.0000000000")</div>
                 <div><strong>Desviacion estandar muestral de f(X):</strong> @Model.StandardDeviation.ToString("0.0000000000")</div>
                 <div><strong>Error estandar estimado:</strong> @Model.StandardError.ToString("0.0000000000")</div>
-                <div><strong>IC 95%:</strong> [@Model.Confidence95Lower.ToString("0.0000000000"),&nbsp;@Model.Confidence95Upper.ToString("0.0000000000")]&nbsp;<span class="text-muted small">(z&#8322; = @Model.ZCritical95.ToString("0.0000000000"))</span></div>
+                <div><strong>IC @Model.ConfidenceLevel?.ToString("0.##")%:</strong> [@Model.ConfidenceLower.ToString("0.0000000000"),&nbsp;@Model.ConfidenceUpper.ToString("0.0000000000")]&nbsp;<span class="text-muted small">(z = @Model.ZCritical.ToString("0.0000000000"))</span></div>
                 <div><strong>Semilla usada:</strong> @Model.EffectiveSeed</div>
             </div>
         </div>
