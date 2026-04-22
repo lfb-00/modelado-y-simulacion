@@ -263,57 +263,91 @@
                 <div class="table-responsive">
                     <table class="table table-striped table-bordered mb-0">
                         <thead>
-                            @if (Model.SelectedAlgorithm == "fixed-point-aitken")
-                            {
-                                <tr>
-                                    <th>Iteración</th>
-                                    <th>Valor actual</th>
-                                    <th>Punto fijo</th>
-                                    <th>Doble aplicación</th>
-                                    <th>Aceleración de Aitken</th>
-                                    <th>Err. absoluto</th>
-                                    <th>Err. relativo</th>
-                                    <th>Residuo</th>
-                                </tr>
-                            }
                             <tr>
-                                <th>@(Model.SelectedAlgorithm == "fixed-point-aitken" ? "n" : "Iter")</th>
                                 @switch (Model.SelectedAlgorithm)
                                 {
                                     case "bisection":
-                                        <th>a_n</th>
-                                        <th>b_n</th>
-                                        <th>c_n = (a_n+b_n)/2</th>
-                                        <th>f(a_n)</th>
-                                        <th>f(b_n)</th>
-                                        <th>f(c_n)</th>
-                                        <th>Error abs = (b_n-a_n)/2</th>
-                                        <th>Error rel = ErrorAbs/max(|c_n|,1e-12)</th>
+                                        <th>Iteración</th>
+                                        <th>Extremo izq.</th>
+                                        <th>Extremo der.</th>
+                                        <th>Punto medio</th>
+                                        <th>f en a</th>
+                                        <th>f en b</th>
+                                        <th>f en c</th>
+                                        <th>Err. absoluto</th>
+                                        <th>Err. relativo</th>
                                         break;
                                     case "newton":
-                                        <th>x_n</th>
-                                        <th>f(x_n)</th>
-                                        <th>f'(x_n)</th>
-                                        <th>x_(n+1) = x_n - f(x_n)/f'(x_n)</th>
-                                        <th>Error abs = |x_(n+1)-x_n|</th>
-                                        <th>Error rel = |x_(n+1)-x_n|/|x_(n+1)|</th>
-                                        <th>Residual = |f(x_n)|</th>
+                                        <th>Iteración</th>
+                                        <th>Valor actual</th>
+                                        <th>Función</th>
+                                        <th>Derivada</th>
+                                        <th>Siguiente valor</th>
+                                        <th>Err. absoluto</th>
+                                        <th>Err. relativo</th>
+                                        <th>Residuo</th>
                                         break;
                                     case "fixed-point":
-                                        <th>x_n</th>
-                                        <th>x_(n+1) = g(x_n)</th>
-                                        <th>Error abs = |x_(n+1)-x_n|</th>
-                                        <th>Error rel = |x_(n+1)-x_n|/|x_(n+1)|</th>
-                                        <th>Residual = |g(x_n)-x_n|</th>
+                                        <th>Iteración</th>
+                                        <th>Valor actual</th>
+                                        <th>Punto fijo</th>
+                                        <th>Err. absoluto</th>
+                                        <th>Err. relativo</th>
+                                        <th>Residuo</th>
                                         break;
                                     case "fixed-point-aitken":
-                                        <th><span class="aitken-katex" data-latex="x_n"></span></th>
-                                        <th><span class="aitken-katex" data-latex="x_{n+1} = g(x_n)"></span></th>
-                                        <th><span class="aitken-katex" data-latex="x_{n+2} = g(x_{n+1})"></span></th>
-                                        <th><span class="aitken-katex" data-latex="\hat{x}_n = x_n - \frac{(x_{n+1} - x_n)^2}{x_{n+2} - 2x_{n+1} + x_n}"></span></th>
-                                        <th><span class="aitken-katex" data-latex="|\hat{x}_n - x_n|"></span></th>
-                                        <th><span class="aitken-katex" data-latex="\frac{|\hat{x}_n - x_n|}{|\hat{x}_n|}"></span></th>
-                                        <th><span class="aitken-katex" data-latex="|g(\hat{x}_n) - \hat{x}_n|"></span></th>
+                                        <th>Iteración</th>
+                                        <th>Valor actual</th>
+                                        <th>Punto fijo</th>
+                                        <th>Doble aplicación</th>
+                                        <th>Aceleración de Aitken</th>
+                                        <th>Err. absoluto</th>
+                                        <th>Err. relativo</th>
+                                        <th>Residuo</th>
+                                        break;
+                                }
+                            </tr>
+                            <tr>
+                                @switch (Model.SelectedAlgorithm)
+                                {
+                                    case "bisection":
+                                        <th><span class="header-katex" data-latex="n"></span></th>
+                                        <th><span class="header-katex" data-latex="a_n"></span></th>
+                                        <th><span class="header-katex" data-latex="b_n"></span></th>
+                                        <th><span class="header-katex" data-latex="c_n = \frac{a_n + b_n}{2}"></span></th>
+                                        <th><span class="header-katex" data-latex="f(a_n)"></span></th>
+                                        <th><span class="header-katex" data-latex="f(b_n)"></span></th>
+                                        <th><span class="header-katex" data-latex="f(c_n)"></span></th>
+                                        <th><span class="header-katex" data-latex="\frac{b_n - a_n}{2}"></span></th>
+                                        <th><span class="header-katex" data-latex="\frac{|c_n - c_{n-1}|}{|c_n|}"></span></th>
+                                        break;
+                                    case "newton":
+                                        <th><span class="header-katex" data-latex="n"></span></th>
+                                        <th><span class="header-katex" data-latex="x_n"></span></th>
+                                        <th><span class="header-katex" data-latex="f(x_n)"></span></th>
+                                        <th><span class="header-katex" data-latex="f'(x_n)"></span></th>
+                                        <th><span class="header-katex" data-latex="x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}"></span></th>
+                                        <th><span class="header-katex" data-latex="|x_{n+1} - x_n|"></span></th>
+                                        <th><span class="header-katex" data-latex="\frac{|x_{n+1} - x_n|}{|x_{n+1}|}"></span></th>
+                                        <th><span class="header-katex" data-latex="|f(x_n)|"></span></th>
+                                        break;
+                                    case "fixed-point":
+                                        <th><span class="header-katex" data-latex="n"></span></th>
+                                        <th><span class="header-katex" data-latex="x_n"></span></th>
+                                        <th><span class="header-katex" data-latex="x_{n+1} = g(x_n)"></span></th>
+                                        <th><span class="header-katex" data-latex="|x_{n+1} - x_n|"></span></th>
+                                        <th><span class="header-katex" data-latex="\frac{|x_{n+1} - x_n|}{|x_{n+1}|}"></span></th>
+                                        <th><span class="header-katex" data-latex="|g(x_n) - x_n|"></span></th>
+                                        break;
+                                    case "fixed-point-aitken":
+                                        <th><span class="header-katex" data-latex="n"></span></th>
+                                        <th><span class="header-katex" data-latex="x_n"></span></th>
+                                        <th><span class="header-katex" data-latex="x_{n+1} = g(x_n)"></span></th>
+                                        <th><span class="header-katex" data-latex="x_{n+2} = g(x_{n+1})"></span></th>
+                                        <th><span class="header-katex" data-latex="\hat{x}_n = x_n - \frac{(x_{n+1} - x_n)^2}{x_{n+2} - 2x_{n+1} + x_n}"></span></th>
+                                        <th><span class="header-katex" data-latex="|\hat{x}_n - x_n|"></span></th>
+                                        <th><span class="header-katex" data-latex="\frac{|\hat{x}_n - x_n|}{|\hat{x}_n|}"></span></th>
+                                        <th><span class="header-katex" data-latex="|g(\hat{x}_n) - \hat{x}_n|"></span></th>
                                         break;
                                 }
                             </tr>
@@ -482,8 +516,8 @@
                 renderResultFunctionLatex();
             }
 
-            // Renderizar fórmulas LaTeX en headers de tabla Aitken
-            document.querySelectorAll('.aitken-katex').forEach(function(el) {
+            // Renderizar fórmulas LaTeX en headers de tabla
+            document.querySelectorAll('.header-katex').forEach(function(el) {
                 var latex = el.getAttribute('data-latex');
                 if (latex) {
                     katex.render(latex, el, { throwOnError: false, displayMode: false });
