@@ -18,6 +18,10 @@ public class MonteCarloIntegrationService
     public double ConfidenceLower { get; private set; }
     public double ConfidenceUpper { get; private set; }
     public int EffectiveSeed { get; private set; }
+    public double? MaxError { get; private set; }
+    public bool ToleranceMet { get; private set; }
+    public int EffectiveSamplesUsed { get; private set; }
+    public int? EstimatedNForTolerance { get; private set; }
 
     public List<double> ChartXValues { get; private set; } = new();
     public List<double> ChartYValues { get; private set; } = new();
@@ -41,10 +45,11 @@ public class MonteCarloIntegrationService
         double? by,
         double? az,
         double? bz,
-        int sampleCount,
+        int? sampleCount,
         int? seed,
         double? confidenceLevel = null,
-        double? zCritical = null)
+        double? zCritical = null,
+        double? maxError = null)
     {
         if (string.IsNullOrWhiteSpace(function))
         {
@@ -54,6 +59,11 @@ public class MonteCarloIntegrationService
         if (dimensions is < 1 or > 3)
         {
             throw new ArgumentException("La dimension debe ser 1, 2 o 3.");
+        }
+
+        if (!sampleCount.HasValue && !maxError.HasValue)
+        {
+            throw new ArgumentException("Ingresa la cantidad de muestras o el error maximo.");
         }
 
         if (!double.IsFinite(ax) || !double.IsFinite(bx))
@@ -92,7 +102,7 @@ public class MonteCarloIntegrationService
             }
         }
 
-        if (sampleCount <= 1)
+        if (sampleCount.HasValue && sampleCount.Value <= 1)
         {
             throw new ArgumentException("La cantidad de muestras debe ser mayor que 1.");
         }
@@ -101,6 +111,60 @@ public class MonteCarloIntegrationService
         Dimensions = dimensions;
         EffectiveSeed = seed ?? Random.Shared.Next(int.MinValue, int.MaxValue);
         var random = new Random(EffectiveSeed);
+
+        double intervalLengthX = bx - ax;
+        double intervalLengthY = dimensions >= 2 ? by!.Value - ay!.Value : 1;
+        double intervalLengthZ = dimensions == 3 ? bz!.Value - az!.Value : 1;
+        DomainVolume = intervalLengthX * intervalLengthY * intervalLengthZ;
+
+        // Resolve z critical early (needed for pilot and early-stop)
+        if (zCritical.HasValue)
+        {
+            ZCritical = zCritical.Value;
+            ConfidenceLevel = (2 * NormalCdf(ZCritical) - 1) * 100;
+        }
+        else
+        {
+            ConfidenceLevel = confidenceLevel ?? 95;
+            double alpha = (100 - ConfidenceLevel) / 100.0;
+            ZCritical = InverseNormalCdf(1 - alpha / 2);
+        }
+
+        // If only maxError given, run a pilot to estimate the needed N
+        int effectiveN;
+        const int pilotSize = 500;
+        const int absoluteMaxN = 10_000_000;
+
+        if (!sampleCount.HasValue && maxError.HasValue)
+        {
+            // Pilot run to estimate variance
+            double pilotSum = 0;
+            double pilotSumSq = 0;
+            for (int p = 0; p < pilotSize; p++)
+            {
+                double px = ax + random.NextDouble() * intervalLengthX;
+                double py = dimensions >= 2 ? ay!.Value + random.NextDouble() * intervalLengthY : 0;
+                double pz = dimensions == 3 ? az!.Value + random.NextDouble() * intervalLengthZ : 0;
+                double pfx = parser.Evaluate(px, py, pz);
+                if (!double.IsFinite(pfx))
+                    throw new ArgumentException("La funcion no pudo evaluarse correctamente en el punto muestreado.");
+                pilotSum += pfx;
+                pilotSumSq += pfx * pfx;
+            }
+            double pilotMean = pilotSum / pilotSize;
+            double pilotVar = (pilotSumSq - pilotSize * pilotMean * pilotMean) / (pilotSize - 1);
+            pilotVar = Math.Max(pilotVar, 1e-30);
+            // z·SE ≤ ε  =>  N >= (z · V · sigma / maxError)^2
+            double neededN = Math.Pow(ZCritical * DomainVolume * Math.Sqrt(pilotVar) / maxError.Value, 2);
+            effectiveN = (int)Math.Clamp(Math.Ceiling(neededN), pilotSize, absoluteMaxN);
+
+            // Reset RNG to include pilot samples in the actual run
+            random = new Random(EffectiveSeed);
+        }
+        else
+        {
+            effectiveN = sampleCount!.Value;
+        }
 
         if (dimensions == 1)
         {
@@ -122,24 +186,21 @@ public class MonteCarloIntegrationService
             boxYMax += 1;
         }
 
-        double intervalLengthX = bx - ax;
-        double intervalLengthY = dimensions >= 2 ? by!.Value - ay!.Value : 1;
-        double intervalLengthZ = dimensions == 3 ? bz!.Value - az!.Value : 1;
-        DomainVolume = intervalLengthX * intervalLengthY * intervalLengthZ;
         double sum = 0;
         double sumSquares = 0;
+        int effectiveSamplesUsed = 0;
 
         const int maxTableRows = 200;
         const int maxScatterPoints = 1500;
-        int scatterStride = Math.Max(1, sampleCount / maxScatterPoints);
+        int scatterStride = Math.Max(1, effectiveN / maxScatterPoints);
 
-        Samples = new List<MonteCarloSampleEntry>(Math.Min(sampleCount, maxTableRows));
-        InsideAreaXValues = new List<double>(Math.Min(sampleCount, maxScatterPoints));
-        InsideAreaYValues = new List<double>(Math.Min(sampleCount, maxScatterPoints));
-        OutsideAreaXValues = new List<double>(Math.Min(sampleCount, maxScatterPoints));
-        OutsideAreaYValues = new List<double>(Math.Min(sampleCount, maxScatterPoints));
+        Samples = new List<MonteCarloSampleEntry>(Math.Min(effectiveN, maxTableRows));
+        InsideAreaXValues = new List<double>(Math.Min(effectiveN, maxScatterPoints));
+        InsideAreaYValues = new List<double>(Math.Min(effectiveN, maxScatterPoints));
+        OutsideAreaXValues = new List<double>(Math.Min(effectiveN, maxScatterPoints));
+        OutsideAreaYValues = new List<double>(Math.Min(effectiveN, maxScatterPoints));
 
-        for (int i = 1; i <= sampleCount; i++)
+        for (int i = 1; i <= effectiveN; i++)
         {
             double x = ax + random.NextDouble() * intervalLengthX;
             double y = dimensions >= 2 ? ay!.Value + random.NextDouble() * intervalLengthY : 0;
@@ -186,32 +247,50 @@ public class MonteCarloIntegrationService
                     OutsideAreaYValues.Add(yProbe);
                 }
             }
+
+            // Early stop when maxError tolerance is met: z·SE ≤ ε
+            if (maxError.HasValue && i >= 30 && i % 100 == 0)
+            {
+                double currentVariance = (sumSquares - i * (sum / i) * (sum / i)) / (i - 1);
+                currentVariance = Math.Max(currentVariance, 0);
+                double currentSE = DomainVolume * Math.Sqrt(currentVariance / i);
+                if (ZCritical * currentSE <= maxError.Value)
+                {
+                    effectiveSamplesUsed = i;
+                    break;
+                }
+            }
+
+            effectiveSamplesUsed = i;
         }
 
-        MeanValue = sum / sampleCount;
+        MeanValue = sum / effectiveSamplesUsed;
         Approximation = DomainVolume * MeanValue;
 
-        double variance = (sumSquares - sampleCount * MeanValue * MeanValue) / (sampleCount - 1);
+        double variance = (sumSquares - effectiveSamplesUsed * MeanValue * MeanValue) / (effectiveSamplesUsed - 1);
         variance = Math.Max(variance, 0);
 
         StandardDeviation = Math.Sqrt(variance);
-        StandardError = DomainVolume * Math.Sqrt(variance / sampleCount);
-
-        if (zCritical.HasValue)
-        {
-            ZCritical = zCritical.Value;
-            ConfidenceLevel = (2 * NormalCdf(ZCritical) - 1) * 100;
-        }
-        else
-        {
-            ConfidenceLevel = confidenceLevel ?? 95;
-            double alpha = (100 - ConfidenceLevel) / 100.0;
-            ZCritical = InverseNormalCdf(1 - alpha / 2);
-        }
+        StandardError = DomainVolume * Math.Sqrt(variance / effectiveSamplesUsed);
+        EffectiveSamplesUsed = effectiveSamplesUsed;
 
         double margin = ZCritical * StandardError;
         ConfidenceLower = Approximation - margin;
         ConfidenceUpper = Approximation + margin;
+
+        MaxError = maxError;
+        if (maxError.HasValue)
+        {
+            ToleranceMet = ZCritical * StandardError <= maxError.Value;
+            // z·SE ≤ ε  =>  N >= (z · V · sigma / maxError)^2
+            double neededN = Math.Pow(ZCritical * DomainVolume * StandardDeviation / maxError.Value, 2);
+            EstimatedNForTolerance = neededN <= int.MaxValue ? (int)Math.Ceiling(neededN) : null;
+        }
+        else
+        {
+            ToleranceMet = false;
+            EstimatedNForTolerance = null;
+        }
 
         FunctionLatex = ToLatex(function);
 
@@ -219,7 +298,7 @@ public class MonteCarloIntegrationService
             "Monte Carlo completado: dim={Dimensions}, dominio volumen={Volume:E6}, muestras={N}, semilla={Seed}, aproximacion={Approximation:E6}, error_est={StandardError:E6}",
             dimensions,
             DomainVolume,
-            sampleCount,
+            effectiveSamplesUsed,
             EffectiveSeed,
             Approximation,
             StandardError);

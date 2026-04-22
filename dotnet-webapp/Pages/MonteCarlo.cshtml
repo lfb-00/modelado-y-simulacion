@@ -47,6 +47,18 @@ document.addEventListener('DOMContentLoaded', function () {
             if (zField.value.trim() !== '') clField.value = '';
         });
     }
+
+    // When user types in N, clear MaxError and vice versa
+    const nField = document.getElementById('SamplesCount');
+    const eField = document.getElementById('MaxError');
+    if (nField && eField) {
+        nField.addEventListener('input', function () {
+            if (nField.value.trim() !== '') eField.value = '';
+        });
+        eField.addEventListener('input', function () {
+            if (eField.value.trim() !== '') nField.value = '';
+        });
+    }
 });
 </script>
 
@@ -121,7 +133,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="SamplesCount">Muestras (N)</label>
-                        <input class="form-control" id="SamplesCount" name="SamplesCount" value="@Model.SamplesCount" required />
+                        <input class="form-control" id="SamplesCount" name="SamplesCount"
+                               value="@(Model.SamplesCount.HasValue ? Model.SamplesCount.Value.ToString() : string.Empty)"
+                               placeholder="5000" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="MaxError">Error maximo</label>
+                        <input class="form-control" id="MaxError" name="MaxError"
+                               value="@(Model.MaxError.HasValue ? Model.MaxError.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty)"
+                               placeholder="0.01" />
+                        <span class="form-text">Completa uno; el otro se calcula.</span>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="ConfidenceLevel">Nivel de confianza (%)</label>
@@ -177,6 +198,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div><strong>Media muestral E[f(X)]:</strong> @Model.MeanValue.ToString("0.0000000000")</div>
                 <div><strong>Desviacion estandar muestral de f(X):</strong> @Model.StandardDeviation.ToString("0.0000000000")</div>
                 <div><strong>Error estandar estimado:</strong> @Model.StandardError.ToString("0.0000000000")</div>
+                <div><strong>Muestras utilizadas:</strong> @Model.EffectiveSamplesUsed</div>
+                @if (Model.MaxError.HasValue)
+                {
+                    <div>
+                        <strong>Error maximo solicitado:</strong> @Model.MaxError.Value.ToString("0.##########")
+                        @if (Model.ToleranceMet)
+                        {
+                            <span class="badge bg-success ms-2">Tolerancia alcanzada</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark ms-2">No alcanzada</span>
+                        }
+                    </div>
+                    @if (Model.EstimatedNForTolerance.HasValue)
+                    {
+                        <div><strong>N estimado para tolerancia:</strong> ~@Model.EstimatedNForTolerance.Value.ToString("N0")</div>
+                    }
+                }
                 <div><strong>IC @Model.ConfidenceLevel?.ToString("0.##")%:</strong> [@Model.ConfidenceLower.ToString("0.0000000000"),&nbsp;@Model.ConfidenceUpper.ToString("0.0000000000")]&nbsp;<span class="text-muted small">(z = @Model.ZCritical.ToString("0.0000000000"))</span></div>
                 <div><strong>Semilla usada:</strong> @Model.EffectiveSeed</div>
             </div>

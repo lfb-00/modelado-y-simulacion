@@ -42,13 +42,16 @@ public class MonteCarloModel : PageModel
     public double BZ { get; set; } = 1;
 
     [BindProperty]
-    public int SamplesCount { get; set; } = 5000;
+    public int? SamplesCount { get; set; } = 5000;
 
     [BindProperty]
     public double? ConfidenceLevel { get; set; } = 95;
 
     [BindProperty]
     public double? ZCriticalInput { get; set; }
+
+    [BindProperty]
+    public double? MaxError { get; set; }
 
     [BindProperty]
     public int? Seed { get; set; }
@@ -67,6 +70,9 @@ public class MonteCarloModel : PageModel
     public double ConfidenceUpper { get; set; }
     public int EffectiveSeed { get; set; }
     public double DomainVolume { get; set; }
+    public bool ToleranceMet { get; set; }
+    public int EffectiveSamplesUsed { get; set; }
+    public int? EstimatedNForTolerance { get; set; }
 
     public List<double> ChartXValues { get; set; } = new();
     public List<double> ChartYValues { get; set; } = new();
@@ -99,7 +105,7 @@ public class MonteCarloModel : PageModel
         try
         {
             var service = new MonteCarloIntegrationService(_loggerFactory);
-            service.Compute(Function, Dimensions, A, B, AY, BY, AZ, BZ, SamplesCount, Seed, ConfidenceLevel, ZCriticalInput);
+            service.Compute(Function, Dimensions, A, B, AY, BY, AZ, BZ, SamplesCount, Seed, ConfidenceLevel, ZCriticalInput, MaxError);
 
             Approximation = service.Approximation;
             MeanValue = service.MeanValue;
@@ -112,6 +118,10 @@ public class MonteCarloModel : PageModel
             ConfidenceUpper = service.ConfidenceUpper;
             EffectiveSeed = service.EffectiveSeed;
             DomainVolume = service.DomainVolume;
+            ToleranceMet = service.ToleranceMet;
+            EffectiveSamplesUsed = service.EffectiveSamplesUsed;
+            EstimatedNForTolerance = service.EstimatedNForTolerance;
+            SamplesCount = service.EffectiveSamplesUsed;
             ChartXValues = service.ChartXValues;
             ChartYValues = service.ChartYValues;
             InsideAreaXValues = service.InsideAreaXValues;
@@ -123,7 +133,7 @@ public class MonteCarloModel : PageModel
             HasResult = true;
             ResultMessage = "Integracion Monte Carlo completada.";
             SummaryMessage =
-                $"Integral {Dimensions}D aproximada = {Approximation.ToString("0.0000000000", CultureInfo.InvariantCulture)} con N = {SamplesCount}, volumen = {DomainVolume.ToString("0.000000", CultureInfo.InvariantCulture)} y semilla = {EffectiveSeed}.";
+                $"Integral {Dimensions}D aproximada = {Approximation.ToString("0.0000000000", CultureInfo.InvariantCulture)} con N = {EffectiveSamplesUsed}, volumen = {DomainVolume.ToString("0.000000", CultureInfo.InvariantCulture)} y semilla = {EffectiveSeed}.";
         }
         catch (ArgumentException ex)
         {
@@ -178,8 +188,7 @@ public class MonteCarloModel : PageModel
         if (!int.TryParse(Request.Form["SamplesCount"], NumberStyles.Integer, CultureInfo.InvariantCulture, out var sampleCount) &&
             !int.TryParse(Request.Form["SamplesCount"], NumberStyles.Integer, CultureInfo.CurrentCulture, out sampleCount))
         {
-            ResultMessage = "Cantidad de muestras invalida. Ingresa un numero entero.";
-            return false;
+            sampleCount = -1; // sentinel for missing
         }
 
         int? parsedSeed = null;
@@ -206,6 +215,11 @@ public class MonteCarloModel : PageModel
             zCriticalInput = double.NaN;
         }
 
+        if (!TryParseFlexibleDouble("MaxError", out var maxError))
+        {
+            maxError = double.NaN;
+        }
+
         Dimensions = dimensions;
         A = a;
         B = b;
@@ -213,9 +227,10 @@ public class MonteCarloModel : PageModel
         BY = by;
         AZ = az;
         BZ = bz;
-        SamplesCount = sampleCount;
+        SamplesCount = sampleCount > 0 ? sampleCount : null;
         ConfidenceLevel = double.IsNaN(confidenceLevel) ? null : confidenceLevel;
         ZCriticalInput = double.IsNaN(zCriticalInput) ? null : zCriticalInput;
+        MaxError = double.IsNaN(maxError) ? null : maxError;
         Seed = parsedSeed;
         return true;
     }
@@ -286,7 +301,13 @@ public class MonteCarloModel : PageModel
             return false;
         }
 
-        if (SamplesCount <= 1)
+        if (!SamplesCount.HasValue && !MaxError.HasValue)
+        {
+            ResultMessage = "Ingresa la cantidad de muestras o el error maximo permitido.";
+            return false;
+        }
+
+        if (SamplesCount.HasValue && SamplesCount <= 1)
         {
             ResultMessage = "La cantidad de muestras debe ser mayor que 1.";
             return false;
@@ -307,6 +328,12 @@ public class MonteCarloModel : PageModel
         if (ZCriticalInput.HasValue && ZCriticalInput <= 0)
         {
             ResultMessage = "El valor z critico debe ser positivo.";
+            return false;
+        }
+
+        if (MaxError.HasValue && MaxError <= 0)
+        {
+            ResultMessage = "El error maximo debe ser positivo.";
             return false;
         }
 
