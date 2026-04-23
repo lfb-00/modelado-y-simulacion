@@ -34,7 +34,7 @@ internal sealed class FixedPointMethod : INumericalMethod
             if (error < context.Tolerance)
             {
                 result.ResultMessage = $"Raíz aproximada: {next:F10} (método de punto fijo)";
-                result.SummaryMessage = $"Iteraciones: {i}, error final = {error:E2}";
+                result.SummaryMessage = $"Iteraciones: {i}, criterio de corte: \\(|x_{{n+1}} - x_n| < \\text{{tol}}\\), error final \\(= {error:E2}\\)";
                 result.RootX = next;
                 result.RootY = next;
                 context.Logger.LogInformation("Punto Fijo convergió en {Iterations} iteraciones con raíz={Root}", i, next);

@@ -58,7 +58,7 @@ internal sealed class FixedPointAitkenMethod : INumericalMethod
             if (error < context.Tolerance || residual < context.Tolerance)
             {
                 result.ResultMessage = $"Raíz aproximada: {xAitken:F10} (punto fijo con aceleración de Aitken)";
-                result.SummaryMessage = $"Iteraciones: {i}, error final = {error:E2}, residual = {residual:E2}";
+                result.SummaryMessage = $"Iteraciones: {i}, criterio de corte: \\(|\\hat{{x}}_n - x_n| < \\text{{tol}}\\), error final \\(= {error:E2}\\), residual \\(= {residual:E2}\\)";
                 result.RootX = xAitken;
                 result.RootY = xAitken;
                 context.Logger.LogInformation("Aitken convergió en {Iterations} iteraciones con raíz={Root}", i, xAitken);

@@ -78,7 +78,7 @@ internal sealed class BisectionMethod : INumericalMethod
             if (Math.Abs(fc) < context.Tolerance || error < context.Tolerance)
             {
                 result.ResultMessage = $"Raíz aproximada: {c:F10} (método bisección)";
-                result.SummaryMessage = $"Iteraciones: {i}, f(c) = {fc:E2}";
+                result.SummaryMessage = $"Iteraciones: {i}, criterio de corte: \\(|f(c)| < \\text{{tol}}\\) ó \\(\\frac{{b-a}}{{2}} < \\text{{tol}}\\), \\(f(c) = {fc:E2}\\)";
                 result.RootX = c;
                 result.RootY = fc;
                 context.Logger.LogInformation("Bisección convergió en {Iterations} iteraciones con raíz={Root}", i, c);

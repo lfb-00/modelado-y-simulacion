@@ -186,10 +186,17 @@
                         <div id="resultFunctionLatexRaw" class="border rounded p-2 mt-2" style="font-family: Consolas, 'Courier New', monospace; background-color: #222; border-color: #3a3a3a; white-space: pre-wrap;"></div>
                     </div>
                 </div>
+                @if (Model.SelectedAlgorithm == "newton")
+                {
+                    <div class="mb-2">
+                        <strong>Fórmula:</strong>
+                        <span id="newtonFormulaKatex"></span>
+                    </div>
+                }
                 <p class="card-text">@Model.ResultMessage</p>
                 @if (!string.IsNullOrEmpty(Model.SummaryMessage))
                 {
-                    <p class="card-text"><strong>@Model.SummaryMessage</strong></p>
+                    <p class="card-text" id="summaryMessage"><strong>@Model.SummaryMessage</strong></p>
                 }
                 @if (!string.IsNullOrEmpty(Model.ConvergenceComment))
                 {
@@ -516,6 +523,12 @@
                 renderResultFunctionLatex();
             }
 
+            // Renderizar fórmula de Newton-Raphson
+            var newtonFormulaEl = document.getElementById('newtonFormulaKatex');
+            if (newtonFormulaEl) {
+                katex.render('x_{n+1} = x_n - \\frac{f(x_n)}{f\'(x_n)}', newtonFormulaEl, { throwOnError: false, displayMode: false });
+            }
+
             // Renderizar fórmulas LaTeX en headers de tabla
             document.querySelectorAll('.header-katex').forEach(function(el) {
                 var latex = el.getAttribute('data-latex');
@@ -523,6 +536,17 @@
                     katex.render(latex, el, { throwOnError: false, displayMode: false });
                 }
             });
+
+            // Renderizar LaTeX en el resumen (criterio de corte)
+            var summaryEl = document.getElementById('summaryMessage');
+            if (summaryEl) {
+                renderMathInElement(summaryEl, {
+                    delimiters: [
+                        {left: "\\(", right: "\\)", display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
 
             // Renderizar gráfico si hay datos
             const chartXValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartXValues ?? new List<double>()));
