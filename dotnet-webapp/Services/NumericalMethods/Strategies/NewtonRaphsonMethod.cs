@@ -46,7 +46,7 @@ internal sealed class NewtonRaphsonMethod : INumericalMethod
             if (error < context.Tolerance)
             {
                 result.ResultMessage = $"Raíz aproximada: {next:F10} (método Newton-Raphson)";
-                result.SummaryMessage = $"Iteraciones: {i}, criterio de corte: \\(|x_{{n+1}}-x_n| < \\text{{tol}}\\), \\(|f(x_n)| = {Math.Abs(fx):E2}\\)";
+                result.SummaryMessage = $"Iteraciones: {i}, criterio de corte: \\(|x_{{n+1}} - x_n| < \\text{{tol}}\\), \\(|f(x_n)| = {Math.Abs(fx):E2}\\)";
                 result.RootX = next;
                 result.RootY = context.EvaluateF(next);
                 context.Logger.LogInformation("Newton-Raphson convergió en {Iterations} iteraciones con raíz={Root}", i, next);

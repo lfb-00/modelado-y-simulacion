@@ -4,6 +4,20 @@
     ViewData["Title"] = "Modelado y simulación";
 }
 
+@functions {
+    static Microsoft.AspNetCore.Html.HtmlString SciLatex(double? value)
+    {
+        if (value == null) return new Microsoft.AspNetCore.Html.HtmlString("-");
+        var s = value.Value.ToString("E2");
+        var parts = s.Split('E');
+        var mantissa = parts[0];
+        var exp = int.Parse(parts[1]).ToString();
+        var latex = mantissa + " \\times 10^{" + exp + "}";
+        return new Microsoft.AspNetCore.Html.HtmlString(
+            $"<span class=\"sci-katex\" data-latex=\"{latex}\"></span>");
+    }
+}
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.1.0/dist/chartjs-plugin-zoom.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -172,6 +186,54 @@
 
         <button type="submit" class="btn btn-primary mt-3">Calcular</button>
     </form>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">
+                <a data-bs-toggle="collapse" href="#metodosLeyenda" role="button" aria-expanded="false" aria-controls="metodosLeyenda" style="text-decoration: none; color: #e0e0e0;">
+                    Sobre los métodos ▾
+                </a>
+            </h5>
+            <div class="collapse" id="metodosLeyenda">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <h6>Bisección</h6>
+                        <ul class="small">
+                            <li>Convergencia lineal, siempre converge si hay cambio de signo en [a, b].</li>
+                            <li>No requiere derivada ni función iterativa.</li>
+                            <li>Es el método más robusto pero más lento.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Newton-Raphson</h6>
+                        <ul class="small">
+                            <li>Convergencia cuadrática cerca de la raíz.</li>
+                            <li>Llega muy rápido a una aproximación muy precisa.</li>
+                            <li>Requiere calcular la derivada f'(x).</li>
+                            <li>Suele ser más eficiente si la derivada es fácil de obtener.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Punto fijo</h6>
+                        <ul class="small">
+                            <li>Convergencia lineal, depende de que |g'(x)| &lt; 1 cerca de la raíz.</li>
+                            <li>No requiere derivada explícita.</li>
+                            <li>Requiere reformular f(x) = 0 como x = g(x).</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Punto fijo + Aitken (Δ²)</h6>
+                        <ul class="small">
+                            <li>Acelera mucho la convergencia del punto fijo.</li>
+                            <li>No requiere derivada explícita.</li>
+                            <li>Puede ser más simple si ya tenés una función iterativa g(x).</li>
+                            <li>Newton resulta más directo y preciso para tolerancias chicas.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     @if (!string.IsNullOrEmpty(Model.ResultMessage))
     {
@@ -373,33 +435,33 @@
                                             <td>@(step.FA?.ToString("F8") ?? "-")</td>
                                             <td>@(step.FB?.ToString("F8") ?? "-")</td>
                                             <td>@(step.FC?.ToString("F8") ?? "-")</td>
-                                            <td>@(step.Error?.ToString("E2") ?? "-")</td>
-                                            <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
+                                            <td>@SciLatex(step.Error)</td>
+                                            <td>@SciLatex(step.RelativeError)</td>
                                             break;
                                         case "newton":
                                             <td>@(step.X?.ToString("F8") ?? "-")</td>
                                             <td>@(step.FX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.DFX?.ToString("F8") ?? "-")</td>
                                             <td>@(step.NextX?.ToString("F8") ?? "-")</td>
-                                            <td>@(step.Error?.ToString("E2") ?? "-")</td>
-                                            <td>@(step.Iteration == 1 ? "N/A" : step.RelativeError?.ToString("E2") ?? "-")</td>
-                                            <td>@(step.Residual?.ToString("E2") ?? "-")</td>
+                                            <td>@SciLatex(step.Error)</td>
+                                            <td>@(step.Iteration == 1 ? "N/A" : SciLatex(step.RelativeError))</td>
+                                            <td>@SciLatex(step.Residual)</td>
                                             break;
                                         case "fixed-point":
                                             <td>@(step.X?.ToString("F8") ?? "-")</td>
                                             <td>@(step.G?.ToString("F8") ?? "-")</td>
-                                            <td>@(step.Error?.ToString("E2") ?? "-")</td>
-                                            <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
-                                            <td>@(step.Residual?.ToString("E2") ?? "-")</td>
+                                            <td>@SciLatex(step.Error)</td>
+                                            <td>@SciLatex(step.RelativeError)</td>
+                                            <td>@SciLatex(step.Residual)</td>
                                             break;
                                         case "fixed-point-aitken":
                                             <td>@(step.X?.ToString("F8") ?? "-")</td>
                                             <td>@(step.G?.ToString("F8") ?? "-")</td>
                                             <td>@(step.GG?.ToString("F8") ?? "-")</td>
                                             <td>@(step.AitkenX?.ToString("F8") ?? "-")</td>
-                                            <td>@(step.Error?.ToString("E2") ?? "-")</td>
-                                            <td>@(step.RelativeError?.ToString("E2") ?? "-")</td>
-                                            <td>@(step.Residual?.ToString("E2") ?? "-")</td>
+                                            <td>@SciLatex(step.Error)</td>
+                                            <td>@SciLatex(step.RelativeError)</td>
+                                            <td>@SciLatex(step.Residual)</td>
                                             break;
                                     }
                                 </tr>
@@ -531,6 +593,14 @@
 
             // Renderizar fórmulas LaTeX en headers de tabla
             document.querySelectorAll('.header-katex').forEach(function(el) {
+                var latex = el.getAttribute('data-latex');
+                if (latex) {
+                    katex.render(latex, el, { throwOnError: false, displayMode: false });
+                }
+            });
+
+            // Renderizar notación científica en celdas de tabla
+            document.querySelectorAll('.sci-katex').forEach(function(el) {
                 var latex = el.getAttribute('data-latex');
                 if (latex) {
                     katex.render(latex, el, { throwOnError: false, displayMode: false });
