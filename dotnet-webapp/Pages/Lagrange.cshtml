@@ -37,14 +37,14 @@
 							{
 								<tr>
 									<td>@(i + 1)</td>
-									<td><input name="Points[@i].X" value="@Model.Points[i].X" class="form-control" step="any" required /></td>
-									<td><input name="Points[@i].Y" value="@Model.Points[i].Y" class="form-control" step="any" required /></td>
+									<td><input name="Points[@i].X" value="@Model.Points[i].X" type="text" class="form-control" required /></td>
+									<td><input name="Points[@i].Y" value="@Model.Points[i].Y" type="text" class="form-control" required /></td>
 								</tr>
 							}
 						</tbody>
 					</table>
 				</div>
-				<div class="form-text mt-2">Mínimo 3 puntos, máximo 30.</div>
+				<div class="form-text mt-2">Mínimo 3 puntos, máximo 30. Se aceptan expresiones: <code>pi</code>, <code>e</code>, <code>2*pi</code>, <code>ln(2)</code>, <code>sqrt(3)</code>, etc.</div>
 			</div>
 		</div>
 
@@ -229,8 +229,8 @@
 				const row = document.createElement('tr');
 				row.innerHTML = `
 					<td>${currentRows + 1}</td>
-					<td><input name="Points[${currentRows}].X" class="form-control" step="any" required /></td>
-					<td><input name="Points[${currentRows}].Y" class="form-control" step="any" required /></td>
+					<td><input name="Points[${currentRows}].X" type="text" class="form-control" required /></td>
+					<td><input name="Points[${currentRows}].Y" type="text" class="form-control" required /></td>
 				`;
 				tbody.appendChild(row);
 				updateButtons();
@@ -401,8 +401,8 @@
 				const row = document.createElement('tr');
 				row.innerHTML = `
 					<td>${currentRows + 1}</td>
-					<td><input name="Points[${currentRows}].X" class="form-control" step="any" required /></td>
-					<td><input name="Points[${currentRows}].Y" class="form-control" step="any" required /></td>
+					<td><input name="Points[${currentRows}].X" type="text" class="form-control" required /></td>
+					<td><input name="Points[${currentRows}].Y" type="text" class="form-control" required /></td>
 				`;
 				tbody.appendChild(row);
 				updateButtons();

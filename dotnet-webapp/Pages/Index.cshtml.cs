@@ -154,8 +154,20 @@ public class IndexModel : PageModel
                                          NumberStyles.AllowDecimalPoint |
                                          NumberStyles.AllowExponent;
 
-        return double.TryParse(raw, strictFloat, CultureInfo.InvariantCulture, out value) ||
-               double.TryParse(raw, strictFloat, CultureInfo.CurrentCulture, out value);
+        if (double.TryParse(raw, strictFloat, CultureInfo.InvariantCulture, out value) ||
+            double.TryParse(raw, strictFloat, CultureInfo.CurrentCulture, out value))
+            return true;
+
+        try
+        {
+            var parser = new FunctionParser(raw);
+            value = parser.Evaluate(0);
+            return double.IsFinite(value);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>

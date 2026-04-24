@@ -39,6 +39,8 @@ public class LagrangeModel : PageModel
     public double? GlobalError { get; set; }
     public bool HasResult { get; set; }
 
+    private List<(double X, double Y)> _parsed = new();
+
     public void OnGet()
     {
         EnsureMinimumPoints();
@@ -57,7 +59,7 @@ public class LagrangeModel : PageModel
         try
         {
             var service = new LagrangeService(_loggerFactory);
-            var values = Points.Select(p => (p.X, p.Y)).ToList();
+            var values = _parsed.ToList();
             service.Compute(values);
 
             Nodes = service.Nodes;
@@ -98,8 +100,8 @@ public class LagrangeModel : PageModel
         {
             Points.Add(new InputPoint
             {
-                X = Points.Count,
-                Y = 0
+                X = Points.Count.ToString(),
+                Y = "0"
             });
         }
     }
@@ -118,11 +120,8 @@ public class LagrangeModel : PageModel
             return false;
         }
 
-        if (Points.Any(p => !double.IsFinite(p.X) || !double.IsFinite(p.Y)))
-        {
-            ResultMessage = "Todos los valores de puntos deben ser numéricos válidos.";
+        if (!TryParsePoints())
             return false;
-        }
 
         return true;
     }
@@ -134,7 +133,7 @@ public class LagrangeModel : PageModel
         FunctionErrorChartX.Clear();
         FunctionErrorChartY.Clear();
 
-        var ordered = Points.OrderBy(p => p.X).ToList();
+        var ordered = _parsed.OrderBy(p => p.X).ToList();
         foreach (var p in ordered)
         {
             FunctionChartX.Add(p.X);
@@ -174,7 +173,7 @@ public class LagrangeModel : PageModel
         GlobalError = maxError;
     }
 
-    private static bool TryEvaluatePiecewiseFunction(List<InputPoint> orderedPoints, double x, out double y)
+    private static bool TryEvaluatePiecewiseFunction(List<(double X, double Y)> orderedPoints, double x, out double y)
     {
         y = 0;
         if (orderedPoints.Count < 2)
@@ -208,7 +207,7 @@ public class LagrangeModel : PageModel
 
     private void BuildInterpolatingLatex()
     {
-        if (Points.Count == 0)
+        if (_parsed.Count == 0)
         {
             InterpolatingFunctionLatex = string.Empty;
             return;
@@ -217,15 +216,15 @@ public class LagrangeModel : PageModel
         string Format(double v) => v.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture);
 
         var terms = new List<string>();
-        for (int i = 0; i < Points.Count; i++)
+        for (int i = 0; i < _parsed.Count; i++)
         {
-            var pi = Points[i];
+            var pi = _parsed[i];
             var factors = new List<string>();
-            for (int j = 0; j < Points.Count; j++)
+            for (int j = 0; j < _parsed.Count; j++)
             {
                 if (i == j) continue;
 
-                var pj = Points[j];
+                var pj = _parsed[j];
                 factors.Add($"\\frac{{x-({Format(pj.X)})}}{{({Format(pi.X)})-({Format(pj.X)})}}");
             }
 
@@ -241,24 +240,24 @@ public class LagrangeModel : PageModel
         LagrangeGeneralFormulaLatex = "P(x)=\\sum_{i=0}^{n} y_i L_i(x),\\qquad L_i(x)=\\prod_{j=0,\\,j\\ne i}^{n}\\frac{x-x_j}{x_i-x_j}";
         BasePolynomialsLatex.Clear();
 
-        if (Points.Count == 0)
+        if (_parsed.Count == 0)
         {
             return;
         }
 
         string Format(double v) => v.ToString("0.######", CultureInfo.InvariantCulture);
 
-        for (int i = 0; i < Points.Count; i++)
+        for (int i = 0; i < _parsed.Count; i++)
         {
             var factors = new List<string>();
-            for (int j = 0; j < Points.Count; j++)
+            for (int j = 0; j < _parsed.Count; j++)
             {
                 if (i == j)
                 {
                     continue;
                 }
 
-                factors.Add($"\\frac{{x-({Format(Points[j].X)})}}{{({Format(Points[i].X)})-({Format(Points[j].X)})}}");
+                factors.Add($"\\frac{{x-({Format(_parsed[j].X)})}}{{({Format(_parsed[i].X)})-({Format(_parsed[j].X)})}}");
             }
 
             string factorProduct = factors.Count > 0 ? string.Join("", factors) : "1";
@@ -268,7 +267,7 @@ public class LagrangeModel : PageModel
 
     private void BuildSimplifiedOutputFunction()
     {
-        double[] coefficients = ComputeMonomialCoefficients(Points);
+        double[] coefficients = ComputeMonomialCoefficients(_parsed);
         InterpolatingFunctionSimplifiedText = "y = " + BuildPolynomialPlainText(coefficients);
         InterpolatingFunctionSimplifiedLatex = "P(x) = " + BuildPolynomialLatex(coefficients);
     }
@@ -278,7 +277,7 @@ public class LagrangeModel : PageModel
         OutputOverviewChartX.Clear();
         OutputOverviewChartY.Clear();
 
-        double[] coefficients = ComputeMonomialCoefficients(Points);
+        double[] coefficients = ComputeMonomialCoefficients(_parsed);
         const int points = 401;
         const double minX = -20;
         const double maxX = 20;
@@ -298,7 +297,7 @@ public class LagrangeModel : PageModel
         }
     }
 
-    private static double[] ComputeMonomialCoefficients(IReadOnlyList<InputPoint> points)
+    private static double[] ComputeMonomialCoefficients(IReadOnlyList<(double X, double Y)> points)
     {
         int n = points.Count;
         var system = new double[n, n + 1];
@@ -453,7 +452,35 @@ public class LagrangeModel : PageModel
 
     public sealed class InputPoint
     {
-        public double X { get; set; }
-        public double Y { get; set; }
+        public string X { get; set; } = "0";
+        public string Y { get; set; } = "0";
+    }
+
+    private bool TryParsePoints()
+    {
+        _parsed.Clear();
+        for (int i = 0; i < Points.Count; i++)
+        {
+            var raw = Points[i];
+            string xExpr = string.IsNullOrWhiteSpace(raw.X) ? "0" : raw.X.Trim();
+            string yExpr = string.IsNullOrWhiteSpace(raw.Y) ? "0" : raw.Y.Trim();
+            try
+            {
+                double x = new FunctionParser(xExpr).Evaluate(0);
+                double y = new FunctionParser(yExpr).Evaluate(0);
+                if (!double.IsFinite(x) || !double.IsFinite(y))
+                {
+                    ResultMessage = $"Punto #{i + 1}: el valor evaluado no es finito.";
+                    return false;
+                }
+                _parsed.Add((x, y));
+            }
+            catch (Exception ex)
+            {
+                ResultMessage = $"Punto #{i + 1}: expresión inválida — {ex.Message}";
+                return false;
+            }
+        }
+        return true;
     }
 }
