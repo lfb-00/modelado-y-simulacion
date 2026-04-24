@@ -60,7 +60,12 @@ public class NewtonCotesService
             double fx = parser.Evaluate(x);
             if (!double.IsFinite(fx))
             {
-                throw new ArgumentException($"La funcion no pudo evaluarse correctamente en x = {x:0.######}.");
+                fx = ApproximateLimit(parser, x, StepSize);
+                if (!double.IsFinite(fx))
+                {
+                    throw new ArgumentException($"La funcion no pudo evaluarse correctamente en x = {x:0.######} (indeterminacion no resuelta).");
+                }
+                _logger.LogInformation("Indeterminacion en x={X} resuelta por limite numerico: f(x)≈{FX}", x, fx);
             }
 
             int coefficient = GetCoefficient(rule, i, subintervals);
@@ -85,6 +90,31 @@ public class NewtonCotesService
         BuildChartSeries(parser, a, b);
 
         _logger.LogInformation("Newton-Cotes completado con regla {Rule}, intervalo [{A}, {B}], n={N}, aproximacion={Approximation:E6}", rule, a, b, subintervals, Approximation);
+    }
+
+    /// <summary>
+    /// Approximates the limit of f(x) at a point where it is indeterminate (NaN/Infinity)
+    /// by evaluating from both sides with decreasing step sizes.
+    /// </summary>
+    private static double ApproximateLimit(FunctionParser parser, double x, double h)
+    {
+        double[] deltas = { 1e-8, 1e-10, 1e-12 };
+        double sumLeft = 0, sumRight = 0;
+        int countLeft = 0, countRight = 0;
+
+        foreach (var d in deltas)
+        {
+            double fLeft = parser.Evaluate(x - d);
+            if (double.IsFinite(fLeft)) { sumLeft += fLeft; countLeft++; }
+
+            double fRight = parser.Evaluate(x + d);
+            if (double.IsFinite(fRight)) { sumRight += fRight; countRight++; }
+        }
+
+        int total = countLeft + countRight;
+        if (total == 0) return double.NaN;
+
+        return (sumLeft + sumRight) / total;
     }
 
     private static void ValidateRule(string rule, int subintervals)
@@ -187,7 +217,11 @@ public class NewtonCotesService
 
             if (!double.IsFinite(y))
             {
-                continue;
+                y = ApproximateLimit(parser, x, (b - a) / (chartPoints - 1));
+                if (!double.IsFinite(y))
+                {
+                    continue;
+                }
             }
 
             ChartXValues.Add(x);
