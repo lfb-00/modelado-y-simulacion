@@ -64,6 +64,44 @@
 		</div>
 	}
 
+	<div class="card mb-4">
+		<div class="card-body">
+			<h5 class="card-title mb-3">
+				<a data-bs-toggle="collapse" href="#pasosResolucion" role="button" aria-expanded="false" aria-controls="pasosResolucion" style="text-decoration: none;">
+					Pasos para resolver ▾
+				</a>
+			</h5>
+			<div class="collapse" id="pasosResolucion">
+				<h6>Interpolación de Lagrange</h6>
+				<ol class="small">
+					<li>Dados <span class="katex-step" data-latex="n+1"></span> puntos <span class="katex-step" data-latex="(x_0,y_0),\,(x_1,y_1),\,\ldots,\,(x_n,y_n)"></span> con <span class="katex-step" data-latex="x_i"></span> distintos.</li>
+					<li>Construir los <span class="katex-step" data-latex="n+1"></span> polinomios base de Lagrange:
+						<div class="mt-1 mb-1"><span class="katex-step" data-latex="L_i(x) = \prod_{\substack{j=0 \\ j \ne i}}^{n} \frac{x - x_j}{x_i - x_j}"></span></div>
+					</li>
+					<li>Cada <span class="katex-step" data-latex="L_i"></span> cumple: <span class="katex-step" data-latex="L_i(x_i) = 1"></span> y <span class="katex-step" data-latex="L_i(x_j) = 0"></span> si <span class="katex-step" data-latex="j \ne i"></span>.</li>
+					<li>El polinomio interpolante es:
+						<div class="mt-1 mb-1"><span class="katex-step" data-latex="P(x) = \sum_{i=0}^{n} y_i \, L_i(x)"></span></div>
+					</li>
+					<li><span class="katex-step" data-latex="P(x)"></span> pasa exactamente por todos los puntos dados: <span class="katex-step" data-latex="P(x_i) = y_i"></span>.</li>
+					<li>El grado del polinomio es a lo sumo <span class="katex-step" data-latex="n"></span>.</li>
+				</ol>
+
+				<h6 class="mt-3">Cota del error de interpolación</h6>
+				<ol class="small">
+					<li>Si los puntos provienen de una función <span class="katex-step" data-latex="f"></span> con <span class="katex-step" data-latex="n+1"></span> derivadas continuas:</li>
+					<li><span class="katex-step" data-latex="f(x) - P(x) = \frac{f^{(n+1)}(\xi)}{(n+1)!}\prod_{i=0}^{n}(x - x_i)"></span> para algún <span class="katex-step" data-latex="\xi"></span> en el intervalo.</li>
+					<li>El error crece fuera del rango de los puntos (extrapolación).</li>
+				</ol>
+
+				<h6 class="mt-3">Forma simplificada (monomios)</h6>
+				<ol class="small">
+					<li>Expandir <span class="katex-step" data-latex="P(x)"></span> y agrupar potencias: <span class="katex-step" data-latex="P(x) = a_0 + a_1 x + a_2 x^2 + \cdots + a_n x^n"></span></li>
+					<li>Se obtiene resolviendo el sistema de Vandermonde (lo hace la app automáticamente).</li>
+				</ol>
+			</div>
+		</div>
+	</div>
+
 	@if (Model.HasResult && !string.IsNullOrWhiteSpace(Model.InterpolatingFunctionLatex))
 	{
 		<div class="card mb-4">
@@ -421,3 +459,11 @@
 		})();
 	</script>
 }
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+	document.querySelectorAll('.katex-step').forEach(function (el) {
+		try { katex.render(el.dataset.latex, el, { throwOnError: false }); } catch {}
+	});
+});
+</script>
