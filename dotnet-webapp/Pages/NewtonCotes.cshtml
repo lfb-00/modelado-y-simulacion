@@ -46,6 +46,12 @@
 						<button type="submit" class="btn btn-primary w-100">Integrar</button>
 					</div>
 				</div>
+				<div class="row g-3 mt-2">
+					<div class="col-md-4">
+						<label class="form-label" for="Xi">ξ para error de truncamiento (opcional)</label>
+						<input class="form-control" id="Xi" name="Xi" type="text" value="@Model.Xi" placeholder="ej: 0.5" />
+					</div>
+				</div>
 				<div class="form-text mt-3">Restricciones: trapecio n &gt;= 1, Simpson 1/3 n par, Simpson 3/8 n multiplo de 3.</div>
 				<div class="form-text">Los límites aceptan expresiones como <code>pi</code>, <code>2*pi</code>, <code>e</code>, <code>ln(2)</code>, <code>sqrt(3)</code>.</div>
 			</div>
@@ -63,44 +69,73 @@
 		</div>
 	}
 
+	@if (Model.HasResult && !string.IsNullOrEmpty(Model.FunctionInputLatex))
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Función ingresada</h5>
+				<div id="functionInputLatex" class="border rounded p-2"></div>
+			</div>
+		</div>
+	}
+
 	<div class="card mb-4">
 		<div class="card-body">
 			<h5 class="card-title mb-3">
 				<a data-bs-toggle="collapse" href="#pasosResolucion" role="button" aria-expanded="false" aria-controls="pasosResolucion" style="text-decoration: none;">
-					Pasos para resolver ▾
+					Pasos para resolver (ayudamemoria) ▾
 				</a>
 			</h5>
 			<div class="collapse" id="pasosResolucion">
-				<div class="row g-3">
-					<div class="col-md-4">
-						<h6>Trapecio compuesto</h6>
-						<ol class="small">
-							<li>Calcular el paso: <span class="katex-step" data-latex="h = \frac{b - a}{n}"></span></li>
-							<li>Evaluar los nodos: <span class="katex-step" data-latex="x_i = a + ih"></span> para <span class="katex-step" data-latex="i = 0, 1, \ldots, n"></span>.</li>
-							<li>Aplicar: <span class="katex-step" data-latex="\int_a^b f(x)\,dx \approx \frac{h}{2}\left[f(x_0) + 2\sum_{i=1}^{n-1} f(x_i) + f(x_n)\right]"></span></li>
-							<li>Cota de error: <span class="katex-step" data-latex="|E| \le \frac{(b-a)\,h^2}{12}\,\max|f''(\xi)|"></span></li>
-						</ol>
-					</div>
-					<div class="col-md-4">
-						<h6>Simpson 1/3 compuesto</h6>
-						<ol class="small">
-							<li>Elegir <span class="katex-step" data-latex="n"></span> par. Calcular <span class="katex-step" data-latex="h = \frac{b - a}{n}"></span>.</li>
-							<li>Evaluar <span class="katex-step" data-latex="f(x_i)"></span> en los <span class="katex-step" data-latex="n+1"></span> nodos.</li>
-							<li>Aplicar: <span class="katex-step" data-latex="\int_a^b f(x)\,dx \approx \frac{h}{3}\left[f(x_0) + 4\sum_{i\,\text{impar}} f(x_i) + 2\sum_{i\,\text{par}} f(x_i) + f(x_n)\right]"></span></li>
-							<li>Cota de error: <span class="katex-step" data-latex="|E| \le \frac{(b-a)\,h^4}{180}\,\max|f^{(4)}(\xi)|"></span></li>
-						</ol>
-					</div>
-					<div class="col-md-4">
-						<h6>Simpson 3/8 compuesto</h6>
-						<ol class="small">
-							<li>Elegir <span class="katex-step" data-latex="n"></span> múltiplo de 3. Calcular <span class="katex-step" data-latex="h = \frac{b - a}{n}"></span>.</li>
-							<li>Evaluar <span class="katex-step" data-latex="f(x_i)"></span> en los <span class="katex-step" data-latex="n+1"></span> nodos.</li>
-							<li>Aplicar: <span class="katex-step" data-latex="\int_a^b f(x)\,dx \approx \frac{3h}{8}\left[f(x_0) + 3f(x_1) + 3f(x_2) + 2f(x_3) + \cdots + f(x_n)\right]"></span></li>
-							<li>Coeficientes del patrón: <span class="katex-step" data-latex="1,\;3,\;3,\;2,\;3,\;3,\;2,\;\ldots,\;1"></span></li>
-							<li>Cota de error: <span class="katex-step" data-latex="|E| \le \frac{(b-a)\,h^4}{80}\,\max|f^{(4)}(\xi)|"></span></li>
-						</ol>
-					</div>
-				</div>
+
+				<h6>3.a. Regla del trapecio compuesto</h6>
+				<ol class="small">
+					<li>Identificar intervalo <span class="katex-step" data-latex="[a,b]"></span> y cantidad de subintervalos <span class="katex-step" data-latex="n"></span>.</li>
+					<li>Calcular paso: <span class="katex-step" data-latex="h = \frac{b-a}{n}"></span>
+						<div class="ms-3 mt-1">Ej: <span class="katex-step" data-latex="h = \frac{1-0}{4} = 0.25"></span></div>
+					</li>
+					<li>Armar nodos: <span class="katex-step" data-latex="x_i = a + i \cdot h"></span> para <span class="katex-step" data-latex="i = 0,1,\ldots,n"></span></li>
+					<li>Evaluar <span class="katex-step" data-latex="f(x_i)"></span> en cada nodo.
+						<div class="ms-3 mt-1 text-warning"><strong>OJO:</strong> si <span class="katex-step" data-latex="f(x)"></span> tiene forma <span class="katex-step" data-latex="\frac{0}{0}"></span> en algún nodo (ej: <span class="katex-step" data-latex="\frac{\ln(1+x)}{x}"></span> en <span class="katex-step" data-latex="x=0"></span>), usar el límite: <span class="katex-step" data-latex="\lim_{x\to 0}\frac{\ln(1+x)}{x}=1"></span></div>
+					</li>
+					<li>Aplicar la fórmula:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="T_n = \frac{h}{2}\left[f(x_0) + 2\sum_{i=1}^{n-1}f(x_i) + f(x_n)\right]"></span></div>
+					</li>
+					<li>Error de truncamiento para un <span class="katex-step" data-latex="\xi"></span> dado:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="E_T = -\frac{(b-a)\,h^2}{12}\,f''(\xi)"></span></div>
+						Cota: <span class="katex-step" data-latex="|E_T| \le \frac{(b-a)\,h^2}{12}\,\max|f''(x)|"></span>
+					</li>
+				</ol>
+
+				<hr/>
+
+				<h6>3.b. Simpson 1/3 compuesto</h6>
+				<ol class="small">
+					<li><strong>Condición:</strong> <span class="katex-step" data-latex="n"></span> debe ser <strong>par</strong>.</li>
+					<li>Usar los mismos nodos del trapecio: <span class="katex-step" data-latex="x_i = a + ih"></span></li>
+					<li>Evaluar <span class="katex-step" data-latex="f(x_i)"></span> en cada nodo.</li>
+					<li>Aplicar la fórmula:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="S_n = \frac{h}{3}\left[f(x_0) + 4\sum_{i\,\text{impar}}f(x_i) + 2\sum_{i\,\text{par}}f(x_i) + f(x_n)\right]"></span></div>
+						Para <span class="katex-step" data-latex="n=4"></span>:
+						<div class="ms-3 mt-1"><span class="katex-step" data-latex="S_4 = \frac{h}{3}\left[f(x_0) + 4f(x_1) + 2f(x_2) + 4f(x_3) + f(x_4)\right]"></span></div>
+					</li>
+					<li>Error de truncamiento:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="E_S = -\frac{(b-a)\,h^4}{180}\,f^{(4)}(\xi)"></span></div>
+						Cota: <span class="katex-step" data-latex="|E_S| \le \frac{(b-a)\,h^4}{180}\,\max|f^{(4)}(x)|"></span>
+					</li>
+				</ol>
+
+				<hr/>
+
+				<h6>Simpson 3/8 compuesto</h6>
+				<ol class="small">
+					<li><strong>Condición:</strong> <span class="katex-step" data-latex="n"></span> debe ser <strong>múltiplo de 3</strong>.</li>
+					<li>Fórmula:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="\frac{3h}{8}\left[f(x_0) + 3f(x_1) + 3f(x_2) + 2f(x_3) + \cdots + f(x_n)\right]"></span></div>
+						Coeficientes: <span class="katex-step" data-latex="1,\;3,\;3,\;2,\;3,\;3,\;2,\;\ldots,\;1"></span>
+					</li>
+					<li>Error: <span class="katex-step" data-latex="E_{3/8} = -\frac{(b-a)\,h^4}{80}\,f^{(4)}(\xi)"></span></li>
+				</ol>
 			</div>
 		</div>
 	</div>
@@ -178,12 +213,35 @@
 			</div>
 		</div>
 	}
+
+	@if (Model.HasTruncationError)
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Error de truncamiento en ξ = @Model.XiValue?.ToString("0.########")</h5>
+				<div>
+					<strong>Valor del error:</strong> @Model.TruncationErrorValue?.ToString("E6")
+				</div>
+				<div id="truncationErrorLatex" class="border rounded p-2 mt-2"></div>
+			</div>
+		</div>
+	}
 </div>
 
 @if (Model.HasResult)
 {
 	<script>
 		(function () {
+			const fnInputLatex = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FunctionInputLatex));
+			const fnInputContainer = document.getElementById('functionInputLatex');
+			if (fnInputContainer) {
+				try {
+					katex.render(fnInputLatex, fnInputContainer, { throwOnError: false, displayMode: true });
+				} catch {
+					fnInputContainer.textContent = fnInputLatex;
+				}
+			}
+
 			const formula = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FormulaLatex));
 			const errorFormula = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ErrorBoundLatex));
 			const formulaContainer = document.getElementById('formulaLatex');
@@ -325,5 +383,16 @@ document.addEventListener('DOMContentLoaded', function () {
 	document.querySelectorAll('.katex-step').forEach(function (el) {
 		try { katex.render(el.dataset.latex, el, { throwOnError: false }); } catch {}
 	});
+
+	@if (Model.HasTruncationError)
+	{
+		<text>
+		try {
+			const truncLatex = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TruncationErrorDetailLatex));
+			const truncEl = document.getElementById('truncationErrorLatex');
+			if (truncEl) katex.render(truncLatex, truncEl, { throwOnError: false });
+		} catch {}
+		</text>
+	}
 });
 </script>

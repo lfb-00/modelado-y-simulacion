@@ -242,52 +242,86 @@
         <div class="card-body">
             <h5 class="card-title mb-3">
                 <a data-bs-toggle="collapse" href="#pasosResolucion" role="button" aria-expanded="false" aria-controls="pasosResolucion" style="text-decoration: none; color: #e0e0e0;">
-                    Pasos para resolver ▾
+                    Pasos para resolver (ayudamemoria) ▾
                 </a>
             </h5>
             <div class="collapse" id="pasosResolucion">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <h6>Bisección</h6>
-                        <ol class="small">
-                            <li>Verificar que <span class="katex-step" data-latex="f(a) \cdot f(b) < 0"></span> (cambio de signo).</li>
-                            <li>Calcular el punto medio: <span class="katex-step" data-latex="c = \frac{a + b}{2}"></span></li>
-                            <li>Evaluar <span class="katex-step" data-latex="f(c)"></span>.</li>
-                            <li>Si <span class="katex-step" data-latex="f(a) \cdot f(c) < 0"></span>, la raíz está en <span class="katex-step" data-latex="[a, c]"></span> → <span class="katex-step" data-latex="b = c"></span>.</li>
-                            <li>Si no, la raíz está en <span class="katex-step" data-latex="[c, b]"></span> → <span class="katex-step" data-latex="a = c"></span>.</li>
-                            <li>Repetir hasta que <span class="katex-step" data-latex="|b - a| < \varepsilon"></span> o se alcancen las iteraciones máximas.</li>
-                            <li>Error absoluto: <span class="katex-step" data-latex="E_n = \frac{|b - a|}{2}"></span>. Cota: <span class="katex-step" data-latex="E_n \le \frac{b_0 - a_0}{2^{n+1}}"></span>.</li>
-                        </ol>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Newton-Raphson</h6>
-                        <ol class="small">
-                            <li>Elegir una semilla inicial <span class="katex-step" data-latex="x_0"></span> cercana a la raíz.</li>
-                            <li>Calcular la derivada <span class="katex-step" data-latex="f'(x_n)"></span>.</li>
-                            <li>Iterar: <span class="katex-step" data-latex="x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}"></span></li>
-                            <li>Frenar cuando <span class="katex-step" data-latex="|x_{n+1} - x_n| < \varepsilon"></span>.</li>
-                            <li>Error: <span class="katex-step" data-latex="E_n = |x_{n+1} - x_n|"></span>. Convergencia cuadrática: <span class="katex-step" data-latex="E_{n+1} \approx C \cdot E_n^2"></span>.</li>
-                        </ol>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Punto fijo</h6>
-                        <ol class="small">
-                            <li>Reescribir <span class="katex-step" data-latex="f(x) = 0"></span> como <span class="katex-step" data-latex="x = g(x)"></span>.</li>
-                            <li>Verificar que <span class="katex-step" data-latex="|g'(x)| < 1"></span> en un entorno de la raíz.</li>
-                            <li>Elegir <span class="katex-step" data-latex="x_0"></span> e iterar: <span class="katex-step" data-latex="x_{n+1} = g(x_n)"></span></li>
-                            <li>Frenar cuando <span class="katex-step" data-latex="|x_{n+1} - x_n| < \varepsilon"></span>.</li>
-                            <li>Error: <span class="katex-step" data-latex="E_n \le \frac{L^n}{1 - L} |x_1 - x_0|"></span> donde <span class="katex-step" data-latex="L = \max|g'(x)|"></span>.</li>
-                        </ol>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Punto fijo + Aitken (Δ²)</h6>
-                        <ol class="small">
-                            <li>Calcular tres iterados consecutivos: <span class="katex-step" data-latex="x_n,\; x_{n+1} = g(x_n),\; x_{n+2} = g(x_{n+1})"></span></li>
-                            <li>Aplicar la aceleración de Aitken: <span class="katex-step" data-latex="\hat{x}_n = x_n - \frac{(x_{n+1} - x_n)^2}{x_{n+2} - 2x_{n+1} + x_n}"></span></li>
-                            <li>Usar <span class="katex-step" data-latex="\hat{x}_n"></span> como nueva aproximación y repetir.</li>
-                            <li>Frenar cuando <span class="katex-step" data-latex="|\hat{x}_n - x_n| < \varepsilon"></span>.</li>
-                        </ol>
-                    </div>
+
+                <h6>1. Demostrar existencia de raíz con Bolzano</h6>
+                <ol class="small">
+                    <li>Verificar que <span class="katex-step" data-latex="f(x)"></span> sea <strong>continua</strong> en el intervalo (polinomios, sin, cos, exp son continuas).</li>
+                    <li>Evaluar en los extremos: <span class="katex-step" data-latex="f(a)"></span> y <span class="katex-step" data-latex="f(b)"></span>.</li>
+                    <li>Analizar signos: si <span class="katex-step" data-latex="f(a) \cdot f(b) < 0"></span>, hay cambio de signo.</li>
+                    <li>Conclusión: <span class="katex-step" data-latex="\exists\, c \in (a,b) \;\text{ tal que }\; f(c)=0"></span></li>
+                </ol>
+
+                <hr/>
+
+                <h6>Bisección</h6>
+                <ol class="small">
+                    <li>Verificar que <span class="katex-step" data-latex="f(a) \cdot f(b) < 0"></span> (cambio de signo).</li>
+                    <li>Calcular el punto medio: <span class="katex-step" data-latex="c = \frac{a + b}{2}"></span></li>
+                    <li>Evaluar <span class="katex-step" data-latex="f(c)"></span>.</li>
+                    <li>Si <span class="katex-step" data-latex="f(a) \cdot f(c) < 0 \Rightarrow b = c"></span>. Si no, <span class="katex-step" data-latex="a = c"></span>.</li>
+                    <li>Repetir hasta <span class="katex-step" data-latex="|b - a| < \varepsilon"></span>.</li>
+                    <li>Cota de error: <span class="katex-step" data-latex="E_n \le \frac{b_0 - a_0}{2^{n+1}}"></span></li>
+                </ol>
+
+                <hr/>
+
+                <h6>Punto fijo + Steffensen-Aitken</h6>
+                <ol class="small">
+                    <li>Transformar <span class="katex-step" data-latex="f(x)=0"></span> en <span class="katex-step" data-latex="x = g(x)"></span>.
+                        <div class="ms-3 mt-1 mb-1">Ejemplo: si <span class="katex-step" data-latex="x^3 - \sin(x) - 5 = 0"></span>, despejar: <span class="katex-step" data-latex="g(x) = \sqrt[3]{\sin(x)+5}"></span></div>
+                    </li>
+                    <li><strong>Verificar condición de Lipschitz:</strong> calcular <span class="katex-step" data-latex="g'(x)"></span> y comprobar:
+                        <div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="|g'(x)| \le L < 1 \quad \text{en el intervalo compacto}"></span></div>
+                        Si se cumple, el método converge.
+                    </li>
+                    <li>Elegir semilla <span class="katex-step" data-latex="x_0"></span> e iterar: <span class="katex-step" data-latex="x_{n+1} = g(x_n)"></span></li>
+                    <li><strong>Acelerar con Aitken:</strong> tomar tres valores consecutivos:
+                        <div class="ms-3 mt-1"><span class="katex-step" data-latex="x_n, \quad x_{n+1}=g(x_n), \quad x_{n+2}=g(x_{n+1})"></span></div>
+                    </li>
+                    <li>Aplicar la fórmula de aceleración Δ²:
+                        <div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="\hat{x}_n = x_n - \frac{(x_{n+1} - x_n)^2}{x_{n+2} - 2x_{n+1} + x_n}"></span></div>
+                    </li>
+                    <li>Usar <span class="katex-step" data-latex="\hat{x}_n"></span> como nueva aproximación y repetir.</li>
+                    <li>Detener cuando <span class="katex-step" data-latex="|\hat{x}_n - x_n| < 10^{-6}"></span> o <span class="katex-step" data-latex="|f(x_n)| < 10^{-6}"></span>.</li>
+                    <li>Error de punto fijo: <span class="katex-step" data-latex="E_n \le \frac{L^n}{1-L}|x_1 - x_0|"></span> donde <span class="katex-step" data-latex="L = \max|g'(x)|"></span></li>
+                </ol>
+
+                <hr/>
+
+                <h6>Newton-Raphson</h6>
+                <ol class="small">
+                    <li>Definir <span class="katex-step" data-latex="f(x)"></span> y calcular <span class="katex-step" data-latex="f'(x)"></span>.
+                        <div class="ms-3 mt-1">Ej: <span class="katex-step" data-latex="f(x)=x^3-\sin(x)-5 \;\Rightarrow\; f'(x)=3x^2-\cos(x)"></span></div>
+                    </li>
+                    <li>Elegir semilla: <span class="katex-step" data-latex="x_0"></span></li>
+                    <li>Fórmula iterativa:
+                        <div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}"></span></div>
+                    </li>
+                    <li>Detener cuando <span class="katex-step" data-latex="|x_{n+1}-x_n| < \varepsilon"></span> o <span class="katex-step" data-latex="|f(x_n)| < \varepsilon"></span>.</li>
+                    <li>Tabla resumen:
+                        <div class="ms-3 mt-1"><span class="katex-step" data-latex="n, \quad x_n, \quad f(x_n), \quad f'(x_n), \quad x_{n+1}, \quad |x_{n+1}-x_n|"></span></div>
+                    </li>
+                    <li>Convergencia cuadrática: <span class="katex-step" data-latex="E_{n+1} \approx C \cdot E_n^2"></span>. Puede fallar si <span class="katex-step" data-latex="f'(x_n) \approx 0"></span>.</li>
+                </ol>
+
+                <hr/>
+
+                <h6>Comparación de métodos</h6>
+                <div class="small">
+                    <table class="table table-sm table-bordered mt-2">
+                        <thead><tr><th></th><th>Bisección</th><th>Punto fijo + Aitken</th><th>Newton-Raphson</th></tr></thead>
+                        <tbody>
+                            <tr><td>Convergencia</td><td>Lineal</td><td>Acelerada (superlineal)</td><td>Cuadrática</td></tr>
+                            <tr><td>Requiere derivada</td><td>No</td><td>No</td><td>Sí</td></tr>
+                            <tr><td>Requiere g(x)</td><td>No</td><td>Sí</td><td>No</td></tr>
+                            <tr><td>Robustez</td><td>Siempre converge</td><td>Depende de |g'|&lt;1</td><td>Puede diverger</td></tr>
+                            <tr><td>Velocidad</td><td>Lenta</td><td>Media</td><td>Rápida</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

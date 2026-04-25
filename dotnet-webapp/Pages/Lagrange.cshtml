@@ -38,13 +38,35 @@
 								<tr>
 									<td>@(i + 1)</td>
 									<td><input name="Points[@i].X" value="@Model.Points[i].X" type="text" class="form-control" required /></td>
-									<td><input name="Points[@i].Y" value="@Model.Points[i].Y" type="text" class="form-control" required /></td>
+									<td><input name="Points[@i].Y" value="@Model.Points[i].Y" type="text" class="form-control" placeholder="auto si f(x)" /></td>
 								</tr>
 							}
 						</tbody>
 					</table>
 				</div>
-				<div class="form-text mt-2">Mínimo 3 puntos, máximo 30. Se aceptan expresiones: <code>pi</code>, <code>e</code>, <code>2*pi</code>, <code>ln(2)</code>, <code>sqrt(3)</code>, etc.</div>
+				<div class="form-text mt-2">Mínimo 3 puntos, máximo 30. Se aceptan expresiones: <code>pi</code>, <code>e</code>, <code>2*pi</code>, <code>ln(2)</code>, <code>sqrt(3)</code>, etc. Si ingresás f(x) y dejás Y vacío, se evalúa automáticamente.</div>
+			</div>
+		</div>
+
+		<div class="card mb-3">
+			<div class="card-body">
+				<h5 class="card-title mb-2">Análisis de error y derivadas (opcional)</h5>
+				<div class="row g-3">
+					<div class="col-md-5">
+						<label class="form-label" for="Function">f(x) original</label>
+						<input class="form-control" id="Function" name="Function" type="text" value="@Model.Function" placeholder="ej: sin(pi*x)" />
+						<div class="form-text">Para calcular error real y cota teórica.</div>
+					</div>
+					<div class="col-md-3">
+						<label class="form-label" for="Xi">ξ para error local</label>
+						<input class="form-control" id="Xi" name="Xi" type="text" value="@Model.Xi" placeholder="ej: 0.45" />
+					</div>
+					<div class="col-md-4">
+						<label class="form-label" for="DerivativePoint">Punto para f'(x)</label>
+						<input class="form-control" id="DerivativePoint" name="DerivativePoint" type="text" value="@Model.DerivativePoint" placeholder="ej: 0.75" />
+						<div class="form-text">Derivada del polinomio + diferencias finitas.</div>
+					</div>
+				</div>
 			</div>
 		</div>
 
@@ -68,35 +90,57 @@
 		<div class="card-body">
 			<h5 class="card-title mb-3">
 				<a data-bs-toggle="collapse" href="#pasosResolucion" role="button" aria-expanded="false" aria-controls="pasosResolucion" style="text-decoration: none;">
-					Pasos para resolver ▾
+					Pasos para resolver (ayudamemoria) ▾
 				</a>
 			</h5>
 			<div class="collapse" id="pasosResolucion">
-				<h6>Interpolación de Lagrange</h6>
+
+				<h6>2.a. Polinomio interpolante de Lagrange</h6>
 				<ol class="small">
-					<li>Dados <span class="katex-step" data-latex="n+1"></span> puntos <span class="katex-step" data-latex="(x_0,y_0),\,(x_1,y_1),\,\ldots,\,(x_n,y_n)"></span> con <span class="katex-step" data-latex="x_i"></span> distintos.</li>
-					<li>Construir los <span class="katex-step" data-latex="n+1"></span> polinomios base de Lagrange:
-						<div class="mt-1 mb-1"><span class="katex-step" data-latex="L_i(x) = \prod_{\substack{j=0 \\ j \ne i}}^{n} \frac{x - x_j}{x_i - x_j}"></span></div>
+					<li>Calcular los valores de la función en los nodos: <span class="katex-step" data-latex="y_i = f(x_i)"></span></li>
+					<li>Armar la tabla de datos:
+						<div class="ms-3 mt-1"><span class="katex-step" data-latex="x_i, \quad f(x_i)"></span></div>
 					</li>
-					<li>Cada <span class="katex-step" data-latex="L_i"></span> cumple: <span class="katex-step" data-latex="L_i(x_i) = 1"></span> y <span class="katex-step" data-latex="L_i(x_j) = 0"></span> si <span class="katex-step" data-latex="j \ne i"></span>.</li>
-					<li>El polinomio interpolante es:
-						<div class="mt-1 mb-1"><span class="katex-step" data-latex="P(x) = \sum_{i=0}^{n} y_i \, L_i(x)"></span></div>
+					<li>Construir los polinomios base:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="L_i(x) = \prod_{\substack{j=0 \\ j \ne i}}^{n} \frac{x - x_j}{x_i - x_j}"></span></div>
 					</li>
-					<li><span class="katex-step" data-latex="P(x)"></span> pasa exactamente por todos los puntos dados: <span class="katex-step" data-latex="P(x_i) = y_i"></span>.</li>
-					<li>El grado del polinomio es a lo sumo <span class="katex-step" data-latex="n"></span>.</li>
+					<li>Armar el polinomio interpolante:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="P_n(x) = \sum_{i=0}^{n} f(x_i)\,L_i(x)"></span></div>
+						Para 4 nodos (<span class="katex-step" data-latex="n=3"></span>): <span class="katex-step" data-latex="P_3(x) = f(x_0)L_0 + f(x_1)L_1 + f(x_2)L_2 + f(x_3)L_3"></span>
+					</li>
+					<li>Evaluar en el punto pedido, ej: <span class="katex-step" data-latex="P_3(0.45)"></span></li>
 				</ol>
 
-				<h6 class="mt-3">Cota del error de interpolación</h6>
+				<h6 class="mt-3">Error local en un punto ξ</h6>
 				<ol class="small">
-					<li>Si los puntos provienen de una función <span class="katex-step" data-latex="f"></span> con <span class="katex-step" data-latex="n+1"></span> derivadas continuas:</li>
-					<li><span class="katex-step" data-latex="f(x) - P(x) = \frac{f^{(n+1)}(\xi)}{(n+1)!}\prod_{i=0}^{n}(x - x_i)"></span> para algún <span class="katex-step" data-latex="\xi"></span> en el intervalo.</li>
-					<li>El error crece fuera del rango de los puntos (extrapolación).</li>
+					<li>Error real: <span class="katex-step" data-latex="E(\xi) = |f(\xi) - P_n(\xi)|"></span></li>
+					<li>Cota teórica del error:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="|E(x)| \le \frac{M}{(n+1)!}\left|\prod_{i=0}^{n}(x - x_i)\right|"></span></div>
+						donde <span class="katex-step" data-latex="M = \max_{\xi \in [a,b]}|f^{(n+1)}(\xi)|"></span>
+					</li>
+					<li>Con 4 nodos (<span class="katex-step" data-latex="n=3"></span>) aparece la cuarta derivada: <span class="katex-step" data-latex="f^{(4)}(\xi)"></span></li>
 				</ol>
 
-				<h6 class="mt-3">Forma simplificada (monomios)</h6>
+				<hr/>
+
+				<h6>2.b. Diferencias finitas centrales</h6>
 				<ol class="small">
-					<li>Expandir <span class="katex-step" data-latex="P(x)"></span> y agrupar potencias: <span class="katex-step" data-latex="P(x) = a_0 + a_1 x + a_2 x^2 + \cdots + a_n x^n"></span></li>
-					<li>Se obtiene resolviendo el sistema de Vandermonde (lo hace la app automáticamente).</li>
+					<li>Identificar nodos equiespaciados y paso <span class="katex-step" data-latex="h"></span>.
+						<div class="ms-3 mt-1">Ej: <span class="katex-step" data-latex="x = 0,\;0.5,\;1,\;1.5 \;\Rightarrow\; h = 0.5"></span></div>
+					</li>
+					<li>Fórmula de diferencia hacia adelante:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="f'(x_i) \approx \frac{f(x_{i+1}) - f(x_i)}{h}"></span></div>
+					</li>
+					<li>Fórmula de diferencia hacia atrás:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="f'(x_i) \approx \frac{f(x_i) - f(x_{i-1})}{h}"></span></div>
+					</li>
+					<li>Fórmula de diferencia central (más precisa):
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="f'(x) \approx \frac{f(x+h) - f(x-h)}{2h}"></span></div>
+					</li>
+					<li>Si el punto pedido (ej: <span class="katex-step" data-latex="x=0.75"></span>) no coincide con un nodo, primero interpolar o derivar el polinomio:
+						<div class="ms-3 mt-1 mb-1"><span class="katex-step" data-latex="f'(0.75) \approx P_n'(0.75)"></span></div>
+					</li>
+					<li>Error de la diferencia central: <span class="katex-step" data-latex="O(h^2)"></span>. Error de las otras: <span class="katex-step" data-latex="O(h)"></span>.</li>
 				</ol>
 			</div>
 		</div>
@@ -124,7 +168,7 @@
 	{
 		<div class="card mb-4">
 			<div class="card-body">
-				<h5 class="card-title">f(x) por tramos, polinomio interpolante P(x) y puntos ingresados</h5>
+				<h5 class="card-title">Polinomio interpolante P(x)@(Model.HasOriginalFunction ? ", f(x) original" : ", f(x) por tramos") y puntos ingresados</h5>
 				<div style="position:relative;height:420px;">
 					<canvas id="interpolationChart"></canvas>
 				</div>
@@ -160,10 +204,10 @@
 						<thead>
 							<tr>
 								<th>#</th>
-								<th>x_i</th>
-								<th>y_i</th>
-								<th>P(x_i)</th>
-								<th>Error local</th>
+								<th>x_i<div class="fw-normal text-muted small">Nodo</div></th>
+								<th>y_i<div class="fw-normal text-muted small">Valor real f(xᵢ)</div></th>
+								<th>P(x_i)<div class="fw-normal text-muted small">Valor del polinomio</div></th>
+								<th>Error local<div class="fw-normal text-muted small">|yᵢ − P(xᵢ)|</div></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -181,6 +225,83 @@
 						</tbody>
 					</table>
 				</div>
+			</div>
+		</div>
+	}
+
+	@if (Model.HasErrorAtXi)
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Error de interpolación en ξ = @Model.XiValue?.ToString("0.########")</h5>
+				<div class="table-responsive">
+					<table class="table table-bordered">
+						<thead>
+							<tr>
+								<th>f(ξ)<div class="fw-normal text-muted small">Función original en ξ</div></th>
+								<th>P(ξ)<div class="fw-normal text-muted small">Polinomio interpolante en ξ</div></th>
+								<th>|f(ξ) − P(ξ)|<div class="fw-normal text-muted small">Error real (absoluto)</div></th>
+								<th>Cota teórica<div class="fw-normal text-muted small">|f⁽ⁿ⁺¹⁾(ξ)|/(n+1)! · ∏|ξ−xᵢ|</div></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>@Model.FunctionAtXi?.ToString("0.##########")</td>
+								<td>@Model.PolynomialAtXi?.ToString("0.##########")</td>
+								<td>@Model.LocalErrorAtXi?.ToString("E6")</td>
+								<td>@Model.TheoreticalErrorBound?.ToString("E6")</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<div id="errorAtXiLatex" class="border rounded p-2 mt-2"></div>
+			</div>
+		</div>
+	}
+
+	@if (Model.HasFiniteDifferences)
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Diferencias finitas (aproximación de derivadas en nodos)</h5>
+				<div class="table-responsive">
+					<table class="table table-striped table-bordered">
+						<thead>
+							<tr>
+								<th>xᵢ</th>
+								<th>f(xᵢ)</th>
+								<th>f'(xᵢ) adelante</th>
+								<th>f'(xᵢ) atrás</th>
+								<th>f'(xᵢ) central</th>
+							</tr>
+						</thead>
+						<tbody>
+							@foreach (var fd in Model.FiniteDifferences)
+							{
+								<tr>
+									<td>@fd.X.ToString("0.######")</td>
+									<td>@fd.Y.ToString("0.########")</td>
+									<td>@(fd.Forward.HasValue ? fd.Forward.Value.ToString("0.########") : "—")</td>
+									<td>@(fd.Backward.HasValue ? fd.Backward.Value.ToString("0.########") : "—")</td>
+									<td>@(fd.Central.HasValue ? fd.Central.Value.ToString("0.########") : "—")</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<div class="form-text">Adelante: (yᵢ₊₁ − yᵢ)/h · Atrás: (yᵢ − yᵢ₋₁)/h · Central: (yᵢ₊₁ − yᵢ₋₁)/(2h)</div>
+			</div>
+		</div>
+	}
+
+	@if (Model.HasDerivative)
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<h5 class="card-title">Derivada en x = @Model.DerivativePointValue?.ToString("0.########")</h5>
+				<div><strong>Método:</strong> @Model.DerivativeMethodUsed</div>
+				<div class="mt-2"><strong>P'(@Model.DerivativePointValue?.ToString("0.####")) =</strong> @Model.DerivativeResult?.ToString("0.##########")</div>
+				<div id="derivativeLatex" class="border rounded p-2 mt-2"></div>
 			</div>
 		</div>
 	}
@@ -268,7 +389,7 @@
 				row.innerHTML = `
 					<td>${currentRows + 1}</td>
 					<td><input name="Points[${currentRows}].X" type="text" class="form-control" required /></td>
-					<td><input name="Points[${currentRows}].Y" type="text" class="form-control" required /></td>
+					<td><input name="Points[${currentRows}].Y" type="text" class="form-control" placeholder="auto si f(x)" /></td>
 				`;
 				tbody.appendChild(row);
 				updateButtons();
@@ -297,6 +418,9 @@
 			const pY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PolynomialChartY));
 			const overviewX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OutputOverviewChartX));
 			const overviewY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OutputOverviewChartY));
+			const origFnX = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OriginalFunctionChartX));
+			const origFnY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OriginalFunctionChartY));
+			const hasOrigFn = @Html.Raw(Model.HasOriginalFunction ? "true" : "false");
 			const errorFP = errX.map((x, i) => ({ x, y: errY[i] }));
 
 			const zoomPlugin = {
@@ -314,18 +438,47 @@
 				}
 			};
 
+			const fDataset = hasOrigFn
+				? {
+					label: 'f(x) original',
+					data: origFnX.map((x, i) => ({ x, y: origFnY[i] })),
+					borderColor: '#4fc3f7',
+					pointRadius: 0,
+					borderWidth: 2,
+					tension: 0
+				}
+				: {
+					label: 'f(x) por tramos (desde puntos)',
+					data: fX.map((x, i) => ({ x, y: fY[i] })),
+					borderColor: '#4fc3f7',
+					pointRadius: 2,
+					borderWidth: 2,
+					tension: 0
+				};
+
+			// Compute error between P(x) and original function if available
+			let errorData = errorFP;
+			if (hasOrigFn && origFnX.length > 0) {
+				// Build error using P(x) vs f(x) at polynomial grid points
+				const origMap = new Map();
+				// For each P(x) grid point, find nearest original function value
+				let oIdx = 0;
+				errorData = [];
+				for (let pi = 0; pi < pX.length; pi++) {
+					const xp = pX[pi];
+					// Advance oIdx to closest
+					while (oIdx < origFnX.length - 1 && Math.abs(origFnX[oIdx + 1] - xp) < Math.abs(origFnX[oIdx] - xp)) oIdx++;
+					if (Math.abs(origFnX[oIdx] - xp) < 0.01) {
+						errorData.push({ x: xp, y: Math.abs(pY[pi] - origFnY[oIdx]) });
+					}
+				}
+			}
+
 			const chart1 = new Chart(document.getElementById('interpolationChart').getContext('2d'), {
 				type: 'line',
 				data: {
 					datasets: [
-						{
-							label: 'f(x) por tramos (desde puntos)',
-							data: fX.map((x, i) => ({ x, y: fY[i] })),
-							borderColor: '#4fc3f7',
-							pointRadius: 2,
-							borderWidth: 2,
-							tension: 0
-						},
+						fDataset,
 						{
 							label: 'P(x)',
 							data: pX.map((x, i) => ({ x, y: pY[i] })),
@@ -362,8 +515,8 @@
 				type: 'line',
 				data: {
 					datasets: [{
-						label: '|f(x) - P(x)|',
-						data: errorFP,
+						label: hasOrigFn ? '|f(x) - P(x)|' : '|f(x) tramos - P(x)|',
+						data: errorData,
 						borderColor: '#ef9a9a',
 						pointRadius: 0,
 						borderWidth: 1.5,
@@ -440,7 +593,7 @@
 				row.innerHTML = `
 					<td>${currentRows + 1}</td>
 					<td><input name="Points[${currentRows}].X" type="text" class="form-control" required /></td>
-					<td><input name="Points[${currentRows}].Y" type="text" class="form-control" required /></td>
+					<td><input name="Points[${currentRows}].Y" type="text" class="form-control" placeholder="auto si f(x)" /></td>
 				`;
 				tbody.appendChild(row);
 				updateButtons();
@@ -465,5 +618,27 @@ document.addEventListener('DOMContentLoaded', function () {
 	document.querySelectorAll('.katex-step').forEach(function (el) {
 		try { katex.render(el.dataset.latex, el, { throwOnError: false }); } catch {}
 	});
+
+	@if (Model.HasErrorAtXi)
+	{
+		<text>
+		try {
+			const errLatex = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ErrorAtXiLatex));
+			const errEl = document.getElementById('errorAtXiLatex');
+			if (errEl) katex.render(errLatex, errEl, { throwOnError: false });
+		} catch {}
+		</text>
+	}
+
+	@if (Model.HasDerivative)
+	{
+		<text>
+		try {
+			const derLatex = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DerivativeLatex));
+			const derEl = document.getElementById('derivativeLatex');
+			if (derEl) katex.render(derLatex, derEl, { throwOnError: false });
+		} catch {}
+		</text>
+	}
 });
 </script>
