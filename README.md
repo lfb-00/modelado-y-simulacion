@@ -31,6 +31,16 @@ Aplicación web en .NET para resolver métodos numéricos: raíces de ecuaciones
 
    Ir a [http://localhost:5050](http://localhost:5050)
 
+## Docker
+
+```bash
+cd dotnet-webapp
+docker build -t modelado-y-simulacion .
+docker run -p 8080:8080 modelado-y-simulacion
+```
+
+Abrir [http://localhost:8080](http://localhost:8080).
+
 ## Estructura
 
 ```
